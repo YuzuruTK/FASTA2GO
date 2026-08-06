@@ -43,7 +43,7 @@ uv sync
 ### Process a FASTA file
 
 ```bash
-# Basic usage
+# Basic usage (skips proteins already in the database)
 uv run python main.py --input uniprot_sprot.fasta
 
 # Custom database path
@@ -54,6 +54,9 @@ uv run python main.py --input uniprot_sprot.fasta --limit 1000
 
 # Custom batch size
 uv run python main.py --input uniprot_sprot.fasta --batch-size 500
+
+# Force re-processing from scratch (drops the database first)
+uv run python main.py --input uniprot_sprot.fasta --overwrite
 ```
 
 ### CLI Options
@@ -64,6 +67,7 @@ uv run python main.py --input uniprot_sprot.fasta --batch-size 500
 | `--db` | `-d` | Path to output SQLite database | `proteins.db` |
 | `--batch-size` | `-b` | Records per database commit | `1000` |
 | `--limit` | `-l` | Max proteins to process (testing) | `None` (all) |
+| `--overwrite` | | Drop and recreate the database before processing | `False` |
 
 ### Query the database
 
@@ -182,6 +186,17 @@ tcc/
 │   └── test_complexity.py
 └── uv.lock                      # Locked dependencies
 ```
+
+## Idempotent Processing
+
+Running `main.py` multiple times on the same FASTA file is **safe** — the pipeline
+automatically skips proteins that already exist in the database (identified by
+`fasta_id` + `source_file`). This prevents duplicate records.
+
+- **First run**: processes all proteins
+- **Second run**: skips all previously processed proteins (reports `skipped` count)
+- **Partial run** (e.g., `--limit 1000` then full run): only processes the remaining proteins
+- **`--overwrite` flag**: drops and recreates the database before processing, forcing a full re-run
 
 ## Processing Pipeline
 
