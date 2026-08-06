@@ -63,6 +63,12 @@ def main() -> None:
         help="Maximum number of proteins to process (for testing).",
     )
 
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Drop and recreate the database before processing.",
+    )
+
     args = parser.parse_args()
 
     print("=" * 60)
@@ -73,6 +79,8 @@ def main() -> None:
     print(f"  Batch size   : {args.batch_size:,}")
     if args.limit:
         print(f"  Limit        : {args.limit:,}")
+    if args.overwrite:
+        print(f"  Overwrite    : Yes")
     print("-" * 60)
 
     try:
@@ -81,12 +89,14 @@ def main() -> None:
             db_path=args.db,
             batch_size=args.batch_size,
             limit=args.limit,
+            overwrite=args.overwrite,
         )
 
         print("=" * 60)
         print("  Processing Complete")
         print("=" * 60)
         print(f"  Processed    : {summary['processed']:,} proteins")
+        print(f"  Skipped      : {summary['skipped']:,} proteins (already in DB)")
         print(f"  Errors       : {summary['errors']}")
         print(f"  Elapsed time : {format_time(summary['elapsed_seconds'])}")
         print(f"  Database     : {summary['database_path']}")

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
@@ -21,6 +22,7 @@ def process_fasta_file(
     db_path: str | Path = "proteins.db",
     batch_size: int = 1000,
     limit: int | None = None,
+    overwrite: bool = False,
 ) -> dict:
     """Process a FASTA file and populate the SQLite database with features.
 
@@ -28,7 +30,8 @@ def process_fasta_file(
     1. Opens the FASTA file and counts the total number of entries.
     2. Parses each protein record.
     3. Computes sequence features and amino acid composition.
-    4. Inserts everything into SQLite in batches.
+    4. Inserts everything into SQLite in batches, skipping records that
+       already exist in the database (idempotent).
     5. Returns a summary dict with processing statistics.
 
     Args:
@@ -36,10 +39,11 @@ def process_fasta_file(
         db_path: Path to the SQLite database file.
         batch_size: Number of records to batch-commit to the database.
         limit: Optional maximum number of records to process (for testing).
+        overwrite: If True, drop and recreate the database before processing.
 
     Returns:
-        Dict with keys: 'processed', 'total_entries', 'elapsed_seconds',
-        'database_path'.
+        Dict with keys: 'processed', 'skipped', 'total_entries',
+        'elapsed_seconds', 'database_path'.
     """
     import time
 
@@ -57,18 +61,48 @@ def process_fasta_file(
 
     # Initialize database
     engine = create_database_engine(db_path)
+
+    if overwrite:
+        # Drop all tables and recreate from scratch
+        from protein_database.database.models import Base
+
+        Base.metadata.drop_all(engine)
+        print("Overwrite mode: dropped existing database tables.")
+
     init_database(engine)
     session_factory = create_session_factory(engine)
 
     processed = 0
+    skipped = 0
     errors = 0
 
     with session_factory() as session:
+        # Pre-load existing fasta_ids for this source file to skip duplicates
+        existing_ids = set(
+            session.scalars(
+                select(ProteinModel.fasta_id).where(
+                    ProteinModel.source_file == source_file
+                )
+            ).all()
+        )
+        if existing_ids:
+            print(f"Found {len(existing_ids):,} existing records for '{source_file}'. Skipping duplicates.")
+
         batch: list[tuple[ProteinModel, SequenceFeatureModel, CompositionModel]] = []
 
         progress_bar = tqdm(parse_fasta(fasta_path), total=total_entries, desc="Processing", unit="protein")
         for record in progress_bar:
+            # Check limit before processing each record
+            if limit is not None and processed + skipped >= limit:
+                break
+
             try:
+                # Skip records that already exist in the database
+                if record.fasta_id in existing_ids:
+                    skipped += 1
+                    progress_bar.set_postfix({"skipped": skipped})
+                    continue
+
                 protein, features, composition = _extract_and_build_models(
                     record, source_file
                 )
@@ -83,9 +117,6 @@ def process_fasta_file(
                 errors += 1
                 progress_bar.set_postfix({"errors": errors})
 
-            if limit is not None and processed >= limit:
-                break
-
         # Flush any remaining batch
         if batch:
             _flush_batch(session, batch)
@@ -95,6 +126,7 @@ def process_fasta_file(
 
     return {
         "processed": processed,
+        "skipped": skipped,
         "total_entries": total_entries,
         "errors": errors,
         "elapsed_seconds": elapsed,

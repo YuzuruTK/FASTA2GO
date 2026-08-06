@@ -9,6 +9,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -21,6 +22,9 @@ class Protein(Base):
     """Stores original FASTA information for each protein."""
 
     __tablename__ = "proteins"
+    __table_args__ = (
+        UniqueConstraint("fasta_id", "source_file", name="uq_protein_fasta_source"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     fasta_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
