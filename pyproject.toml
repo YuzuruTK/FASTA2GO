@@ -1,0 +1,21 @@
+[project]
+name = "protein-database"
+version = "0.1.0"
+description = "Parse protein FASTA files, extract sequence features, and store results in SQLite."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "biopython>=1.88",
+    "numpy>=2.5.1",
+    "pandas>=3.0.5",
+    "sqlalchemy>=2.0.51",
+    "tqdm>=4.70.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+
+# Test artifacts
+.pytest_cache/
+tests/test_proteins.db
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Data files (FASTA)
+*.fasta
+*.fa
