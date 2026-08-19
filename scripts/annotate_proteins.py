@@ -8,6 +8,7 @@ Usage:
 """
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -16,6 +17,8 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from protein_database.uniprot.annotate import annotate_database, RunSummary
+
+logger = logging.getLogger("annotate_proteins")
 
 
 def format_summary(s: RunSummary) -> str:
@@ -72,9 +75,24 @@ def main() -> None:
         default=5,
         help="Max retries per request (default: 5).",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable DEBUG-level logging.",
+    )
     args = parser.parse_args()
 
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        stream=sys.stderr,
+    )
+
     db_path = Path(args.db)
+    if not db_path.exists():
+        print(f"Error: Database not found: {db_path}", file=sys.stderr)
+        sys.exit(1)
+
     print("=" * 60)
     print("  UniProt Annotation Enrichment")
     print("=" * 60)
@@ -95,6 +113,7 @@ def main() -> None:
         )
         print(format_summary(summary))
     except Exception as exc:
+        logger.exception("Enrichment failed")
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
 

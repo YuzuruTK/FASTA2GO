@@ -259,13 +259,19 @@ def annotate_database(
     try:
         from protein_database.database.connection import init_database
 
+        print("Reading protein table...")
         init_database(conn)
 
+        print("Extracting unique UniProt accessions...")
         accession_map = load_accession_map(conn)
+        total_local_proteins = sum(len(v) for v in accession_map.values())
+        print(f"Found {total_local_proteins:,} local protein rows, {len(accession_map):,} unique accessions.")
+
+        print("Building accession queue...")
         build_accession_queue(conn, accession_map)
 
         summary = RunSummary(
-            total_local_proteins=sum(len(v) for v in accession_map.values()),
+            total_local_proteins=total_local_proteins,
             unique_accessions=len(accession_map),
         )
 
@@ -277,8 +283,9 @@ def annotate_database(
         )
 
         pending = get_pending_accessions(conn, limit)
+        print(f"{len(pending):,} accessions to process this run.")
         if not pending:
-            logger.info("No pending accessions to process.")
+            print("Nothing to process — all accessions already handled.")
             return summary
 
         # Resume: reset in-flight accessions that never completed to pending.
@@ -298,8 +305,9 @@ def annotate_database(
 
             if cached:
                 text = cache.load(batch_id)
-                logger.info("Resuming from cache: %s", batch_id)
+                print(f"[{batch_id[:8]}] using cached response ({len(batch)} accessions)")
             else:
+                print(f"[{batch_id[:8]}] fetching {len(batch)} accessions from UniProt...")
                 try:
                     resp = client.fetch_batch(batch)
                     summary.http_requests += 1
@@ -309,6 +317,7 @@ def annotate_database(
                     increment_retry(conn, batch)
                     update_queue_status(conn, batch, STATUS_FAILED)
                     summary.failed += len(batch)
+                    print(f"[{batch_id[:8]}] FAILED after retries: {exc}")
                     continue
 
                 # Cache raw response BEFORE import, so a successful fetch
@@ -342,6 +351,11 @@ def annotate_database(
             if not_found:
                 update_queue_status(conn, not_found, STATUS_NOT_FOUND)
                 summary.not_found += len(not_found)
+
+            print(
+                f"[{batch_id[:8]}] done: {len(annotations)} entries, "
+                f"{len(missing_fn)} missing function, {len(not_found)} not found"
+            )
 
             progress_bar.set_postfix(
                 {
