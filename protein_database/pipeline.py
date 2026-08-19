@@ -1,16 +1,15 @@
-"""Pipeline orchestrator: FASTA parse -> feature extraction -> SQLite storage."""
+"""Pipeline orchestrator: FASTA parse -> feature extraction -> DuckDB storage."""
 
 from pathlib import Path
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+import duckdb
 from tqdm import tqdm
 
-from protein_database.database.connection import create_database_engine, create_session_factory, init_database
+from protein_database.database.connection import connect, drop_tables, init_database
 from protein_database.database.models import (
     AminoAcidComposition as CompositionModel,
     Protein as ProteinModel,
-    SequenceFeature as SequenceFeatureModel,
+    SequenceFeatures as SequenceFeaturesModel,
 )
 from protein_database.features.composition import compute_amino_acid_composition
 from protein_database.features.sequence_features import compute_sequence_features
@@ -19,25 +18,25 @@ from protein_database.parser.fasta_parser import FastaRecord, count_fasta_entrie
 
 def process_fasta_file(
     fasta_path: str | Path,
-    db_path: str | Path = "proteins.db",
+    db_path: str | Path = "proteins.duckdb",
     batch_size: int = 1000,
     limit: int | None = None,
     overwrite: bool = False,
 ) -> dict:
-    """Process a FASTA file and populate the SQLite database with features.
+    """Process a FASTA file and populate a DuckDB database with features.
 
     This function:
     1. Opens the FASTA file and counts the total number of entries.
     2. Parses each protein record.
     3. Computes sequence features and amino acid composition.
-    4. Inserts everything into SQLite in batches, skipping records that
-       already exist in the database (idempotent).
+    4. Inserts everything into DuckDB in batches via executemany, skipping
+       records that already exist in the database (idempotent).
     5. Returns a summary dict with processing statistics.
 
     Args:
         fasta_path: Path to the input FASTA file.
-        db_path: Path to the SQLite database file.
-        batch_size: Number of records to batch-commit to the database.
+        db_path: Path to the DuckDB database file.
+        batch_size: Number of records to batch-insert to the database.
         limit: Optional maximum number of records to process (for testing).
         overwrite: If True, drop and recreate the database before processing.
 
@@ -60,67 +59,66 @@ def process_fasta_file(
         total_entries = min(total_entries, limit)
 
     # Initialize database
-    engine = create_database_engine(db_path)
+    conn = connect(db_path)
 
     if overwrite:
-        # Drop all tables and recreate from scratch
-        from protein_database.database.models import Base
-
-        Base.metadata.drop_all(engine)
+        drop_tables(conn)
         print("Overwrite mode: dropped existing database tables.")
 
-    init_database(engine)
-    session_factory = create_session_factory(engine)
+    init_database(conn)
 
     processed = 0
     skipped = 0
     errors = 0
 
-    with session_factory() as session:
-        # Pre-load existing fasta_ids for this source file to skip duplicates
-        existing_ids = set(
-            session.scalars(
-                select(ProteinModel.fasta_id).where(
-                    ProteinModel.source_file == source_file
-                )
-            ).all()
-        )
-        if existing_ids:
-            print(f"Found {len(existing_ids):,} existing records for '{source_file}'. Skipping duplicates.")
+    # Pre-load existing fasta_ids for this source file to skip duplicates
+    existing_ids = set(
+        row[0]
+        for row in conn.execute(
+            "SELECT fasta_id FROM proteins WHERE source_file = ?", [source_file]
+        ).fetchall()
+    )
+    if existing_ids:
+        print(f"Found {len(existing_ids):,} existing records for '{source_file}'. Skipping duplicates.")
 
-        batch: list[tuple[ProteinModel, SequenceFeatureModel, CompositionModel]] = []
+    batch_proteins: list[list] = []
+    batch_features: list[list] = []
+    batch_compositions: list[list] = []
 
-        progress_bar = tqdm(parse_fasta(fasta_path), total=total_entries, desc="Processing", unit="protein")
-        for record in progress_bar:
-            # Check limit before processing each record
-            if limit is not None and processed + skipped >= limit:
-                break
+    progress_bar = tqdm(parse_fasta(fasta_path), total=total_entries, desc="Processing", unit="protein")
+    for record in progress_bar:
+        # Check limit before processing each record
+        if limit is not None and processed + skipped >= limit:
+            break
 
-            try:
-                # Skip records that already exist in the database
-                if record.fasta_id in existing_ids:
-                    skipped += 1
-                    progress_bar.set_postfix({"skipped": skipped})
-                    continue
+        try:
+            # Skip records that already exist in the database
+            if record.fasta_id in existing_ids:
+                skipped += 1
+                progress_bar.set_postfix({"skipped": skipped})
+                continue
 
-                protein, features, composition = _extract_and_build_models(
-                    record, source_file
-                )
-                batch.append((protein, features, composition))
-                processed += 1
+            protein, features, composition = _extract_and_build_models(record, source_file)
+            batch_proteins.append(_protein_row(protein))
+            batch_features.append(_features_row(features))
+            batch_compositions.append(_composition_row(composition))
+            processed += 1
 
-                if len(batch) >= batch_size:
-                    _flush_batch(session, batch)
-                    batch = []
+            if len(batch_proteins) >= batch_size:
+                _flush_batches(conn, batch_proteins, batch_features, batch_compositions)
+                batch_proteins = []
+                batch_features = []
+                batch_compositions = []
 
-            except Exception as exc:
-                errors += 1
-                progress_bar.set_postfix({"errors": errors})
+        except Exception:
+            errors += 1
+            progress_bar.set_postfix({"errors": errors})
 
-        # Flush any remaining batch
-        if batch:
-            _flush_batch(session, batch)
+    # Flush any remaining batch
+    if batch_proteins:
+        _flush_batches(conn, batch_proteins, batch_features, batch_compositions)
 
+    conn.close()
     elapsed = time.time() - start_time
     progress_bar.close()
 
@@ -136,15 +134,15 @@ def process_fasta_file(
 
 def _extract_and_build_models(
     record: FastaRecord, source_file: str
-) -> tuple[ProteinModel, SequenceFeatureModel, CompositionModel]:
-    """Compute features for a record and build ORM model instances.
+) -> tuple[ProteinModel, SequenceFeaturesModel, CompositionModel]:
+    """Compute features for a record and build model instances.
 
     Args:
         record: Parsed FASTA record.
         source_file: Source FASTA filename.
 
     Returns:
-        Tuple of (Protein, SequenceFeature, AminoAcidComposition) models.
+        Tuple of (Protein, SequenceFeatures, AminoAcidComposition) models.
     """
     # Compute features
     features = compute_sequence_features(record.sequence)
@@ -155,12 +153,13 @@ def _extract_and_build_models(
         fasta_id=record.fasta_id,
         description=record.description,
         sequence=record.sequence,
-        sequence_length=record.sequence_length,
         source_file=source_file,
     )
 
     # Build sequence features model
-    seq_feature = SequenceFeatureModel(
+    seq_feature = SequenceFeaturesModel(
+        fasta_id=record.fasta_id,
+        source_file=source_file,
         molecular_weight=features.molecular_weight,
         isoelectric_point=features.isoelectric_point,
         gravy_index=features.gravy_index,
@@ -180,6 +179,8 @@ def _extract_and_build_models(
 
     # Build amino acid composition model
     composition_model = CompositionModel(
+        fasta_id=record.fasta_id,
+        source_file=source_file,
         alanine_percentage=composition.alanine_percentage,
         arginine_percentage=composition.arginine_percentage,
         asparagine_percentage=composition.asparagine_percentage,
@@ -205,24 +206,164 @@ def _extract_and_build_models(
     return protein, seq_feature, composition_model
 
 
-def _flush_batch(
-    session: Session,
-    batch: list[tuple[ProteinModel, SequenceFeatureModel, CompositionModel]],
+_PROTEIN_COLUMNS = [
+    "fasta_id",
+    "source_file",
+    "description",
+    "sequence",
+    "sequence_length",
+    "created_at",
+]
+
+
+def _protein_row(protein: ProteinModel) -> list:
+    """Convert a Protein model to a row of values for insertion."""
+    return [
+        protein.fasta_id,
+        protein.source_file,
+        protein.description,
+        protein.sequence,
+        protein.sequence_length,
+        protein.created_at,
+    ]
+
+
+_FEATURES_COLUMNS = [
+    "fasta_id",
+    "source_file",
+    "molecular_weight",
+    "isoelectric_point",
+    "gravy_index",
+    "instability_index",
+    "aliphatic_index",
+    "aromaticity",
+    "charge_positive_percentage",
+    "charge_negative_percentage",
+    "hydrophobic_percentage",
+    "polar_percentage",
+    "charged_percentage",
+    "sulfur_percentage",
+    "aromatic_percentage",
+    "sequence_entropy",
+    "amino_acid_diversity",
+]
+
+
+def _features_row(features: SequenceFeaturesModel) -> list:
+    """Convert a SequenceFeatures model to a row of values for insertion."""
+    return [
+        features.fasta_id,
+        features.source_file,
+        features.molecular_weight,
+        features.isoelectric_point,
+        features.gravy_index,
+        features.instability_index,
+        features.aliphatic_index,
+        features.aromaticity,
+        features.charge_positive_percentage,
+        features.charge_negative_percentage,
+        features.hydrophobic_percentage,
+        features.polar_percentage,
+        features.charged_percentage,
+        features.sulfur_percentage,
+        features.aromatic_percentage,
+        features.sequence_entropy,
+        features.amino_acid_diversity,
+    ]
+
+
+_COMPOSITION_COLUMNS = [
+    "fasta_id",
+    "source_file",
+    "alanine_percentage",
+    "arginine_percentage",
+    "asparagine_percentage",
+    "aspartic_acid_percentage",
+    "cysteine_percentage",
+    "glutamine_percentage",
+    "glutamic_acid_percentage",
+    "glycine_percentage",
+    "histidine_percentage",
+    "isoleucine_percentage",
+    "leucine_percentage",
+    "lysine_percentage",
+    "methionine_percentage",
+    "phenylalanine_percentage",
+    "proline_percentage",
+    "serine_percentage",
+    "threonine_percentage",
+    "tryptophan_percentage",
+    "tyrosine_percentage",
+    "valine_percentage",
+]
+
+
+def _composition_row(composition: CompositionModel) -> list:
+    """Convert an AminoAcidComposition model to a row of values for insertion."""
+    return [
+        composition.fasta_id,
+        composition.source_file,
+        composition.alanine_percentage,
+        composition.arginine_percentage,
+        composition.asparagine_percentage,
+        composition.aspartic_acid_percentage,
+        composition.cysteine_percentage,
+        composition.glutamine_percentage,
+        composition.glutamic_acid_percentage,
+        composition.glycine_percentage,
+        composition.histidine_percentage,
+        composition.isoleucine_percentage,
+        composition.leucine_percentage,
+        composition.lysine_percentage,
+        composition.methionine_percentage,
+        composition.phenylalanine_percentage,
+        composition.proline_percentage,
+        composition.serine_percentage,
+        composition.threonine_percentage,
+        composition.tryptophan_percentage,
+        composition.tyrosine_percentage,
+        composition.valine_percentage,
+    ]
+
+
+def _insert_many(
+    conn: duckdb.DuckDBPyConnection,
+    table: str,
+    columns: list[str],
+    rows: list[list],
 ) -> None:
-    """Add a batch of models to the session and commit.
+    """Bulk-insert rows into a table using executemany.
 
     Args:
-        session: SQLAlchemy Session.
-        batch: List of (Protein, SequenceFeature, Composition) tuples.
+        conn: DuckDB connection.
+        table: Target table name.
+        columns: Column names to insert into.
+        rows: List of value rows.
     """
-    for protein, seq_feature, composition in batch:
-        session.add(protein)
-        session.flush()  # Get the protein.id
+    if not rows:
+        return
+    placeholder = ", ".join(["?"] * len(columns))
+    col_str = ", ".join(columns)
+    conn.executemany(
+        f"INSERT INTO {table} ({col_str}) VALUES ({placeholder})",
+        rows,
+    )
 
-        seq_feature.protein_id = protein.id
-        composition.protein_id = protein.id
 
-        session.add(seq_feature)
-        session.add(composition)
+def _flush_batches(
+    conn: duckdb.DuckDBPyConnection,
+    batch_proteins: list[list],
+    batch_features: list[list],
+    batch_compositions: list[list],
+) -> None:
+    """Insert all batched rows into their respective tables.
 
-    session.commit()
+    Args:
+        conn: DuckDB connection.
+        batch_proteins: Rows for the proteins table.
+        batch_features: Rows for the sequence_features table.
+        batch_compositions: Rows for the amino_acid_composition table.
+    """
+    _insert_many(conn, "proteins", _PROTEIN_COLUMNS, batch_proteins)
+    _insert_many(conn, "sequence_features", _FEATURES_COLUMNS, batch_features)
+    _insert_many(conn, "amino_acid_composition", _COMPOSITION_COLUMNS, batch_compositions)

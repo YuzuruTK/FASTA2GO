@@ -1,14 +1,15 @@
 [project]
 name = "protein-database"
 version = "0.1.0"
-description = "Parse protein FASTA files, extract sequence features, and store results in SQLite."
+description = "Parse protein FASTA files, extract sequence features, and store results in DuckDB."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "biopython>=1.88",
+    "duckdb>=1.0.0",
     "numpy>=2.5.1",
     "pandas>=3.0.5",
-    "sqlalchemy>=2.0.51",
+    "requests>=2.31.0",
     "tqdm>=4.70.0",
 ]
 

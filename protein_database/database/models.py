@@ -1,128 +1,238 @@
-"""SQLAlchemy ORM models for the protein feature database."""
+"""Schema definitions and dataclasses for the protein feature database.
 
+This module defines the DuckDB schema and lightweight dataclasses used to
+carry computed feature data. It does not use an ORM; persistence is handled
+natively by the DuckDB Python API in the pipeline.
+"""
+
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from sqlalchemy import (
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+def _utcnow() -> str:
+    """Return the current UTC timestamp formatted as an ISO string."""
+    return datetime.now(timezone.utc).isoformat()
 
 
-class Base(DeclarativeBase):
-    """Base class for all ORM models."""
+@dataclass
+class Protein:
+    """Raw FASTA information for a protein."""
+
+    fasta_id: str
+    source_file: str
+    sequence: str
+    description: str | None = None
+    created_at: str = field(default_factory=_utcnow)
+
+    @property
+    def sequence_length(self) -> int:
+        """Number of amino acids in the sequence."""
+        return len(self.sequence)
 
 
-class Protein(Base):
-    """Stores original FASTA information for each protein."""
+@dataclass
+class SequenceFeatures:
+    """Calculated physicochemical properties of a protein sequence."""
 
-    __tablename__ = "proteins"
-    __table_args__ = (
-        UniqueConstraint("fasta_id", "source_file", name="uq_protein_fasta_source"),
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    fasta_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    description: Mapped[str] = mapped_column(Text, nullable=True)
-    sequence: Mapped[str] = mapped_column(Text, nullable=False)
-    sequence_length: Mapped[int] = mapped_column(Integer, nullable=False)
-    source_file: Mapped[str] = mapped_column(String(512), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
-    )
-
-    sequence_features: Mapped["SequenceFeature"] = relationship(
-        back_populates="protein", uselist=False, cascade="all, delete-orphan"
-    )
-    amino_acid_composition: Mapped["AminoAcidComposition"] = relationship(
-        back_populates="protein", uselist=False, cascade="all, delete-orphan"
-    )
-    validation_features: Mapped["ValidationFeature"] = relationship(
-        back_populates="protein", uselist=False, cascade="all, delete-orphan"
-    )
+    fasta_id: str
+    source_file: str
+    molecular_weight: float | None = None
+    isoelectric_point: float | None = None
+    gravy_index: float | None = None
+    instability_index: float | None = None
+    aliphatic_index: float | None = None
+    aromaticity: float | None = None
+    charge_positive_percentage: float | None = None
+    charge_negative_percentage: float | None = None
+    hydrophobic_percentage: float | None = None
+    polar_percentage: float | None = None
+    charged_percentage: float | None = None
+    sulfur_percentage: float | None = None
+    aromatic_percentage: float | None = None
+    sequence_entropy: float | None = None
+    amino_acid_diversity: float | None = None
 
 
-class SequenceFeature(Base):
-    """Stores calculated physicochemical properties of a protein sequence."""
+@dataclass
+class AminoAcidComposition:
+    """Amino acid frequency percentages for a protein sequence."""
 
-    __tablename__ = "sequence_features"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    protein_id: Mapped[int] = mapped_column(
-        ForeignKey("proteins.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    molecular_weight: Mapped[float] = mapped_column(Float, nullable=True)
-    isoelectric_point: Mapped[float] = mapped_column(Float, nullable=True)
-    gravy_index: Mapped[float] = mapped_column(Float, nullable=True)
-    instability_index: Mapped[float] = mapped_column(Float, nullable=True)
-    aliphatic_index: Mapped[float] = mapped_column(Float, nullable=True)
-    aromaticity: Mapped[float] = mapped_column(Float, nullable=True)
-    charge_positive_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    charge_negative_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    hydrophobic_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    polar_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    charged_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    sulfur_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    aromatic_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    sequence_entropy: Mapped[float] = mapped_column(Float, nullable=True)
-    amino_acid_diversity: Mapped[float] = mapped_column(Float, nullable=True)
-
-    protein: Mapped["Protein"] = relationship(back_populates="sequence_features")
-
-
-class AminoAcidComposition(Base):
-    """Stores amino acid frequency percentages for a protein sequence."""
-
-    __tablename__ = "amino_acid_composition"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    protein_id: Mapped[int] = mapped_column(
-        ForeignKey("proteins.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-
-    alanine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    arginine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    asparagine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    aspartic_acid_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    cysteine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    glutamine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    glutamic_acid_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    glycine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    histidine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    isoleucine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    leucine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    lysine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    methionine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    phenylalanine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    proline_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    serine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    threonine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    tryptophan_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    tyrosine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-    valine_percentage: Mapped[float] = mapped_column(Float, nullable=True)
-
-    protein: Mapped["Protein"] = relationship(back_populates="amino_acid_composition")
+    fasta_id: str
+    source_file: str
+    alanine_percentage: float | None = None
+    arginine_percentage: float | None = None
+    asparagine_percentage: float | None = None
+    aspartic_acid_percentage: float | None = None
+    cysteine_percentage: float | None = None
+    glutamine_percentage: float | None = None
+    glutamic_acid_percentage: float | None = None
+    glycine_percentage: float | None = None
+    histidine_percentage: float | None = None
+    isoleucine_percentage: float | None = None
+    leucine_percentage: float | None = None
+    lysine_percentage: float | None = None
+    methionine_percentage: float | None = None
+    phenylalanine_percentage: float | None = None
+    proline_percentage: float | None = None
+    serine_percentage: float | None = None
+    threonine_percentage: float | None = None
+    tryptophan_percentage: float | None = None
+    tyrosine_percentage: float | None = None
+    valine_percentage: float | None = None
 
 
-class ValidationFeature(Base):
-    """Stores future validation metrics. Fields initially NULL."""
+@dataclass
+class ValidationFeatures:
+    """Future validation metrics. All fields initially None."""
 
-    __tablename__ = "validation_features"
+    fasta_id: str
+    source_file: str
+    sequence_quality_score: float | None = None
+    stability_score: float | None = None
+    solubility_score: float | None = None
+    structure_score: float | None = None
+    overall_score: float | None = None
+    classification: str | None = None
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    protein_id: Mapped[int] = mapped_column(
-        ForeignKey("proteins.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    sequence_quality_score: Mapped[float] = mapped_column(Float, nullable=True)
-    stability_score: Mapped[float] = mapped_column(Float, nullable=True)
-    solubility_score: Mapped[float] = mapped_column(Float, nullable=True)
-    structure_score: Mapped[float] = mapped_column(Float, nullable=True)
-    overall_score: Mapped[float] = mapped_column(Float, nullable=True)
-    classification: Mapped[str] = mapped_column(String(100), nullable=True)
 
-    protein: Mapped["Protein"] = relationship(back_populates="validation_features")
+@dataclass
+class UniProtAnnotation:
+    """UniProt annotation data for a single local protein row."""
+
+    fasta_id: str
+    source_file: str
+    uniprot_accession: str | None = None
+    uniprot_id: str | None = None
+    protein_name: str | None = None
+    gene_name: str | None = None
+    function: str | None = None
+    subcellular_location: str | None = None
+    protein_existence: str | None = None
+    organism: str | None = None
+    keywords: str | None = None
+    status: str = "fetched"
+    retrieved_at: str = field(default_factory=_utcnow)
+
+
+#: Names of all tables in the database, in dependency order (children first).
+TABLE_NAMES = [
+    "uniprot_accession_queue",
+    "uniprot_annotations",
+    "sequence_features",
+    "amino_acid_composition",
+    "validation_features",
+    "proteins",
+]
+
+#: DuckDB DDL statements used to create the normalized schema.
+SCHEMA_SQL = {
+    "proteins": """
+        CREATE TABLE IF NOT EXISTS proteins (
+            fasta_id        VARCHAR NOT NULL,
+            source_file     VARCHAR NOT NULL,
+            description     VARCHAR,
+            sequence        VARCHAR NOT NULL,
+            sequence_length INTEGER NOT NULL,
+            created_at      TIMESTAMP NOT NULL,
+            PRIMARY KEY (fasta_id, source_file)
+        )
+    """,
+    "sequence_features": """
+        CREATE TABLE IF NOT EXISTS sequence_features (
+            fasta_id                   VARCHAR NOT NULL,
+            source_file                VARCHAR NOT NULL,
+            molecular_weight           DOUBLE,
+            isoelectric_point          DOUBLE,
+            gravy_index                DOUBLE,
+            instability_index          DOUBLE,
+            aliphatic_index            DOUBLE,
+            aromaticity                DOUBLE,
+            charge_positive_percentage DOUBLE,
+            charge_negative_percentage DOUBLE,
+            hydrophobic_percentage     DOUBLE,
+            polar_percentage           DOUBLE,
+            charged_percentage         DOUBLE,
+            sulfur_percentage          DOUBLE,
+            aromatic_percentage        DOUBLE,
+            sequence_entropy           DOUBLE,
+            amino_acid_diversity       DOUBLE,
+            PRIMARY KEY (fasta_id, source_file),
+            FOREIGN KEY (fasta_id, source_file)
+                REFERENCES proteins (fasta_id, source_file)
+        )
+    """,
+    "amino_acid_composition": """
+        CREATE TABLE IF NOT EXISTS amino_acid_composition (
+            fasta_id                VARCHAR NOT NULL,
+            source_file             VARCHAR NOT NULL,
+            alanine_percentage      DOUBLE,
+            arginine_percentage     DOUBLE,
+            asparagine_percentage   DOUBLE,
+            aspartic_acid_percentage DOUBLE,
+            cysteine_percentage     DOUBLE,
+            glutamine_percentage    DOUBLE,
+            glutamic_acid_percentage DOUBLE,
+            glycine_percentage      DOUBLE,
+            histidine_percentage    DOUBLE,
+            isoleucine_percentage   DOUBLE,
+            leucine_percentage      DOUBLE,
+            lysine_percentage       DOUBLE,
+            methionine_percentage   DOUBLE,
+            phenylalanine_percentage DOUBLE,
+            proline_percentage      DOUBLE,
+            serine_percentage       DOUBLE,
+            threonine_percentage    DOUBLE,
+            tryptophan_percentage   DOUBLE,
+            tyrosine_percentage     DOUBLE,
+            valine_percentage       DOUBLE,
+            PRIMARY KEY (fasta_id, source_file),
+            FOREIGN KEY (fasta_id, source_file)
+                REFERENCES proteins (fasta_id, source_file)
+        )
+    """,
+    "validation_features": """
+        CREATE TABLE IF NOT EXISTS validation_features (
+            fasta_id               VARCHAR NOT NULL,
+            source_file            VARCHAR NOT NULL,
+            sequence_quality_score DOUBLE,
+            stability_score        DOUBLE,
+            solubility_score       DOUBLE,
+            structure_score        DOUBLE,
+            overall_score          DOUBLE,
+            classification         VARCHAR,
+            PRIMARY KEY (fasta_id, source_file),
+            FOREIGN KEY (fasta_id, source_file)
+                REFERENCES proteins (fasta_id, source_file)
+        )
+    """,
+    "uniprot_annotations": """
+        CREATE TABLE IF NOT EXISTS uniprot_annotations (
+            fasta_id             VARCHAR NOT NULL,
+            source_file          VARCHAR NOT NULL,
+            uniprot_accession    VARCHAR,
+            uniprot_id           VARCHAR,
+            protein_name         VARCHAR,
+            gene_name            VARCHAR,
+            function             VARCHAR,
+            subcellular_location VARCHAR,
+            protein_existence    VARCHAR,
+            organism             VARCHAR,
+            keywords             VARCHAR,
+            status               VARCHAR NOT NULL,
+            retrieved_at         TIMESTAMP NOT NULL,
+            PRIMARY KEY (fasta_id, source_file),
+            FOREIGN KEY (fasta_id, source_file)
+                REFERENCES proteins (fasta_id, source_file)
+        )
+    """,
+    "uniprot_accession_queue": """
+        CREATE TABLE IF NOT EXISTS uniprot_accession_queue (
+            accession    VARCHAR PRIMARY KEY,
+            status       VARCHAR NOT NULL DEFAULT 'pending',
+            retry_count  INTEGER NOT NULL DEFAULT 0,
+            last_attempt TIMESTAMP,
+            created_at   TIMESTAMP NOT NULL DEFAULT now(),
+            completed_at TIMESTAMP
+        )
+    """,
+}

@@ -13,10 +13,14 @@ wheels/
 .pytest_cache/
 tests/test_proteins.db
 
-# SQLite database files
+# SQLite/DuckDB database files
 *.db
 *.sqlite
 *.sqlite3
+*.duckdb
+
+# UniProt raw response cache
+cache/
 
 # Data files (FASTA)
 *.fasta

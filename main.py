@@ -3,7 +3,7 @@
 
 Usage:
     uv run python main.py --input uniprot_sprot.fasta
-    uv run python main.py --input uniprot_sprot.fasta --db proteins.db --batch-size 500 --limit 1000
+    uv run python main.py --input uniprot_sprot.fasta --db proteins.duckdb --batch-size 500 --limit 1000
 """
 
 import argparse
@@ -25,12 +25,12 @@ def main() -> None:
     """Parse CLI arguments and run the protein processing pipeline."""
     parser = argparse.ArgumentParser(
         description="Protein Sequence Feature Database - Parse FASTA files, "
-        "extract features, and store results in SQLite.",
+        "extract features, and store results in DuckDB.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
             "  python main.py --input uniprot_sprot.fasta\n"
-            "  python main.py --input uniprot_sprot.fasta --db my_proteins.db\n"
+            "  python main.py --input uniprot_sprot.fasta --db my_proteins.duckdb\n"
             "  python main.py --input test.fasta --limit 100 --batch-size 500\n"
         ),
     )
@@ -45,8 +45,8 @@ def main() -> None:
     parser.add_argument(
         "--db", "-d",
         type=str,
-        default="proteins.db",
-        help="Path to the output SQLite database file (default: proteins.db).",
+        default="proteins.duckdb",
+        help="Path to the output DuckDB database file (default: proteins.duckdb).",
     )
 
     parser.add_argument(
