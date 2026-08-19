@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import duckdb
+from tqdm import tqdm
 
 from protein_database.database.connection import bulk_upsert
 from protein_database.uniprot.accession import group_accessions_by_local_rows
@@ -283,7 +284,14 @@ def annotate_database(
         # Resume: reset in-flight accessions that never completed to pending.
         reset_inflight(conn, pending)
 
-        for batch in chunk_list(pending, client.batch_size):
+        num_batches = (len(pending) + client.batch_size - 1) // client.batch_size
+        progress_bar = tqdm(
+            chunk_list(pending, client.batch_size),
+            total=num_batches,
+            desc="Annotating",
+            unit="batch",
+        )
+        for batch in progress_bar:
             batch_id = cache.batch_id(batch)
             text: str | None = None
             cached = cache.exists(batch_id)
@@ -334,6 +342,17 @@ def annotate_database(
             if not_found:
                 update_queue_status(conn, not_found, STATUS_NOT_FOUND)
                 summary.not_found += len(not_found)
+
+            progress_bar.set_postfix(
+                {
+                    "retrieved": summary.successfully_retrieved,
+                    "missing_fn": summary.missing_function,
+                    "not_found": summary.not_found,
+                    "failed": summary.failed,
+                }
+            )
+
+        progress_bar.close()
 
         # Function coverage.
         coverage = compute_function_coverage(conn)
