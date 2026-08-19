@@ -2,6 +2,7 @@
 
 import pytest
 
+from protein_database.uniprot.batching import MAX_OR_CONDITIONS
 from protein_database.uniprot.client import (
     RETRYABLE_STATUSES,
     UniProtClient,
@@ -88,6 +89,14 @@ def test_retryable_statuses_set() -> None:
     assert 429 in RETRYABLE_STATUSES
     assert 500 in RETRYABLE_STATUSES
     assert 503 in RETRYABLE_STATUSES
+
+
+def test_batch_size_capped_at_100() -> None:
+    """batch_size is capped at the UniProt 100-OR limit."""
+    client = UniProtClient(batch_size=500)
+    assert client.batch_size == MAX_OR_CONDITIONS
+    client2 = UniProtClient(batch_size=50)
+    assert client2.batch_size == 50
 
 
 def test_builds_query_params() -> None:

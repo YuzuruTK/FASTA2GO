@@ -2,7 +2,11 @@
 
 import pytest
 
-from protein_database.uniprot.batching import build_accession_query, chunk_list
+from protein_database.uniprot.batching import (
+    MAX_OR_CONDITIONS,
+    build_accession_query,
+    chunk_list,
+)
 
 
 def test_chunk_list_basic() -> None:
@@ -34,3 +38,17 @@ def test_build_accession_query() -> None:
 def test_build_accession_query_empty() -> None:
     with pytest.raises(ValueError):
         build_accession_query([])
+
+
+def test_build_accession_query_max_limit() -> None:
+    """Exactly MAX_OR_CONDITIONS accessions is allowed."""
+    accs = [f"P{i:05d}" for i in range(MAX_OR_CONDITIONS)]
+    q = build_accession_query(accs)
+    assert q.count(" OR ") == MAX_OR_CONDITIONS - 1
+
+
+def test_build_accession_query_rejects_over_limit() -> None:
+    """More than MAX_OR_CONDITIONS accessions is rejected."""
+    accs = [f"P{i:05d}" for i in range(MAX_OR_CONDITIONS + 1)]
+    with pytest.raises(ValueError):
+        build_accession_query(accs)

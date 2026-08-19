@@ -3,7 +3,7 @@
 
 Usage:
     uv run python scripts/annotate_proteins.py --db proteins.duckdb
-    uv run python scripts/annotate_proteins.py --db proteins.duckdb --batch-size 200
+    uv run python scripts/annotate_proteins.py --db proteins.duckdb --batch-size 100
     uv run python scripts/annotate_proteins.py --db proteins.duckdb --limit 5000
 """
 
@@ -60,8 +60,8 @@ def main() -> None:
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=200,
-        help="Accessions per request (default: 200).",
+        default=100,
+        help="Accessions per request, max 100 (UniProt OR limit) (default: 100).",
     )
     parser.add_argument(
         "--limit",

@@ -235,7 +235,7 @@ def get_pending_accessions(conn: duckdb.DuckDBPyConnection, limit: int | None) -
 def annotate_database(
     db_path: str | Path = "proteins.duckdb",
     cache_dir: str | Path = "cache/uniprot",
-    batch_size: int = 200,
+    batch_size: int = 100,
     limit: int | None = None,
     max_retries: int = 5,
     base_delay: float = 1.0,
@@ -246,7 +246,8 @@ def annotate_database(
     Args:
         db_path: Path to the DuckDB database.
         cache_dir: Directory for raw response cache.
-        batch_size: Accessions per request.
+        batch_size: Accessions per request. Capped at the UniProt API limit
+            of 100 (default 100).
         limit: Max accessions to process this run (for testing/resume).
         max_retries: Max retries per request.
         base_delay: Initial backoff delay.

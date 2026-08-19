@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 import requests
 
-from protein_database.uniprot.batching import build_accession_query
+from protein_database.uniprot.batching import MAX_OR_CONDITIONS, build_accession_query
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,8 @@ class UniProtClient:
     """Client for the UniProtKB REST search endpoint.
 
     Args:
-        batch_size: Maximum accessions per request (default 200).
+        batch_size: Maximum accessions per request. Capped at the UniProt
+            API's hard limit of 100 OR conditions (default 100).
         max_retries: Maximum retries for transient failures (default 5).
         base_delay: Initial backoff delay in seconds (default 1.0).
         max_delay: Maximum backoff delay in seconds (default 30.0).
@@ -63,13 +64,13 @@ class UniProtClient:
 
     def __init__(
         self,
-        batch_size: int = 200,
+        batch_size: int = MAX_OR_CONDITIONS,
         max_retries: int = 5,
         base_delay: float = 1.0,
         max_delay: float = 30.0,
         session: requests.Session | None = None,
     ) -> None:
-        self.batch_size = batch_size
+        self.batch_size = min(batch_size, MAX_OR_CONDITIONS)
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.max_delay = max_delay
