@@ -76,6 +76,12 @@ def main() -> None:
         help="Max retries per request (default: 5).",
     )
     parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Number of concurrent HTTP-fetch threads (default: 4).",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable DEBUG-level logging.",
@@ -99,6 +105,7 @@ def main() -> None:
     print(f"  Database      : {db_path}")
     print(f"  Cache dir     : {args.cache_dir}")
     print(f"  Batch size    : {args.batch_size:,}")
+    print(f"  Workers       : {args.workers}")
     if args.limit:
         print(f"  Limit         : {args.limit:,}")
     print("-" * 60)
@@ -110,6 +117,7 @@ def main() -> None:
             batch_size=args.batch_size,
             limit=args.limit,
             max_retries=args.max_retries,
+            workers=args.workers,
         )
         print(format_summary(summary))
     except Exception as exc:

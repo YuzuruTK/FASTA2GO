@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -239,9 +241,13 @@ def annotate_database(
     limit: int | None = None,
     max_retries: int = 5,
     base_delay: float = 1.0,
+    workers: int = 4,
     client: UniProtClient | None = None,
 ) -> RunSummary:
     """Enrich the protein database with UniProt annotations.
+
+    Batching and database writes happen in the coordinator; HTTP requests are
+    performed concurrently across ``workers`` threads.
 
     Args:
         db_path: Path to the DuckDB database.
@@ -251,6 +257,7 @@ def annotate_database(
         limit: Max accessions to process this run (for testing/resume).
         max_retries: Max retries per request.
         base_delay: Initial backoff delay.
+        workers: Number of concurrent HTTP-fetch threads (default 4).
         client: Optional UniProtClient (injectable for tests).
 
     Returns:
@@ -292,71 +299,103 @@ def annotate_database(
         # Resume: reset in-flight accessions that never completed to pending.
         reset_inflight(conn, pending)
 
+        batches = list(chunk_list(pending, client.batch_size))
+
+        fetch_lock = threading.Lock()
+        # requests.Session is not thread-safe; give each thread its own client.
+        thread_local = threading.local()
+
+        def _make_client() -> UniProtClient:
+            if client is not None:
+                # A shared injected client (e.g. in tests) — reuse it.
+                return client
+            actual_batch_size = client.batch_size if client else batch_size
+            return UniProtClient(
+                batch_size=actual_batch_size,
+                max_retries=max_retries,
+                base_delay=base_delay,
+            )
+
+        def _fetch(batch: list[str]) -> tuple[list[str], str | None]:
+            """Fetch or load a batch, returning (batch, tsv_text).
+
+            Cached batches are loaded from disk; otherwise a network request
+            is made and the raw response is cached before returning.
+            """
+            batch_id = cache.batch_id(batch)
+            if cache.exists(batch_id):
+                return batch, cache.load(batch_id)
+            thread_client = getattr(thread_local, "client", None)
+            if thread_client is None:
+                thread_client = _make_client()
+                thread_local.client = thread_client
+            try:
+                resp = thread_client.fetch_batch(batch)
+                text = resp.text
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Batch %s failed after retries: %s", batch_id, exc)
+                return batch, None
+            # Cache raw response BEFORE import so a crash can still resume.
+            cache.save(batch_id, text)
+            with fetch_lock:
+                summary.http_requests += 1
+            return batch, text
+
         progress_bar = tqdm(
             total=len(pending),
             desc="Annotating",
             unit="protein",
             leave=True,
         )
-        for batch in chunk_list(pending, client.batch_size):
-            batch_id = cache.batch_id(batch)
-            text: str | None = None
-            cached = cache.exists(batch_id)
+        lock = threading.Lock()
+        workers = max(1, workers)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {executor.submit(_fetch, b): b for b in batches}
+            for future in as_completed(futures):
+                batch, text = future.result()
+                batch_id = cache.batch_id(batch)
+                progress_bar.set_description(f"Annotating [{batch_id[:8]}]")
 
-            progress_bar.set_description(f"Annotating [{batch_id[:8]}]")
-            if cached:
-                text = cache.load(batch_id)
-                logger.info("Using cached response for batch %s", batch_id)
-            else:
-                try:
-                    resp = client.fetch_batch(batch)
-                    summary.http_requests += 1
-                    text = resp.text
-                except Exception as exc:  # noqa: BLE001
-                    logger.error("Batch %s failed after retries: %s", batch_id, exc)
-                    increment_retry(conn, batch)
-                    update_queue_status(conn, batch, STATUS_FAILED)
-                    summary.failed += len(batch)
+                if text is None:
+                    # Fetch failed after retries.
+                    with lock:
+                        increment_retry(conn, batch)
+                        update_queue_status(conn, batch, STATUS_FAILED)
+                        summary.failed += len(batch)
                     progress_bar.update(len(batch))
                     progress_bar.set_postfix(**_postfix(summary))
                     continue
 
-                # Cache raw response BEFORE import, so a successful fetch
-                # followed by a crash can still resume from cache.
-                cache.save(batch_id, text)
-                summary.cached_batches += 1
+                # Parse + validate (don't mark not_found unless parse succeeds).
+                try:
+                    annotations = parse_tsv(text, batch)
+                except TsvParseError as exc:
+                    logger.error("Unparseable batch %s: %s", batch_id, exc)
+                    with lock:
+                        increment_retry(conn, batch)
+                        update_queue_status(conn, batch, STATUS_FAILED)
+                        summary.failed += len(batch)
+                    progress_bar.update(len(batch))
+                    progress_bar.set_postfix(**_postfix(summary))
+                    continue
 
-            # Parse + validate (don't mark not_found unless parse succeeds).
-            try:
-                annotations = parse_tsv(text, batch)
-            except TsvParseError as exc:
-                logger.error("Unparseable cached/response for batch %s: %s", batch_id, exc)
-                increment_retry(conn, batch)
-                update_queue_status(conn, batch, STATUS_FAILED)
-                summary.failed += len(batch)
+                # Determine not-found accessions ONLY after a confirmed parse.
+                not_found = [acc for acc in missing_accessions(batch, annotations) if acc in batch]
+                found = sorted(set(batch) - set(not_found))
+
+                # Upsert (fan out to local rows) — coordinated, not concurrent.
+                with lock:
+                    written = upsert_annotations(conn, annotations, accession_map)
+                    summary.successfully_retrieved += written
+                    missing_fn = [a for a in annotations if a["status"] == STATUS_MISSING_FUNCTION]
+                    summary.missing_function += len(missing_fn)
+                    update_queue_status(conn, found, STATUS_COMPLETED)
+                    if not_found:
+                        update_queue_status(conn, not_found, STATUS_NOT_FOUND)
+                        summary.not_found += len(not_found)
+
                 progress_bar.update(len(batch))
                 progress_bar.set_postfix(**_postfix(summary))
-                continue
-
-            # Determine not-found accessions ONLY after a confirmed parse.
-            not_found = [acc for acc in missing_accessions(batch, annotations) if acc in batch]
-            found = sorted(set(batch) - set(not_found))
-
-            # Upsert annotations (fan out to local rows).
-            written = upsert_annotations(conn, annotations, accession_map)
-            summary.successfully_retrieved += written
-
-            missing_fn = [a for a in annotations if a["status"] == STATUS_MISSING_FUNCTION]
-            summary.missing_function += len(missing_fn)
-
-            # Update queue statuses.
-            update_queue_status(conn, found, STATUS_COMPLETED)
-            if not_found:
-                update_queue_status(conn, not_found, STATUS_NOT_FOUND)
-                summary.not_found += len(not_found)
-
-            progress_bar.update(len(batch))
-            progress_bar.set_postfix(**_postfix(summary))
 
         progress_bar.close()
 

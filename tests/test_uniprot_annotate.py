@@ -193,3 +193,40 @@ def test_dedupe_accessions(tmp_path: Path) -> None:
         assert count == 1
     finally:
         conn.close()
+
+
+def test_concurrent_multi_batch(tmp_path: Path) -> None:
+    """Multiple batches are fetched concurrently and all upserted."""
+    # 5 distinct accessions -> with batch_size 2 => 3 batches
+    db = _make_db(
+        tmp_path,
+        [
+            ("sp|P69905|HBA_HUMAN", "a.fasta"),
+            ("sp|P68871|HBB_HUMAN", "a.fasta"),
+            ("sp|P00740|FA9_HUMAN", "a.fasta"),
+            ("sp|P01009|A1AT_HUMAN", "a.fasta"),
+            ("sp|P0DTC2|SPIKE_SARS2", "a.fasta"),
+        ],
+    )
+    client = StubClient(batch_size=2)
+    summary = annotate_database(
+        db_path=db,
+        cache_dir=tmp_path / "cache",
+        batch_size=2,
+        workers=4,
+        client=client,
+    )
+    conn = connect(db)
+    try:
+        n = conn.execute("SELECT count(*) FROM uniprot_annotations").fetchone()[0]
+        assert n == 5
+        # all marked completed (fetched)
+        done = conn.execute(
+            "SELECT count(*) FROM uniprot_accession_queue WHERE status = 'completed'"
+        ).fetchone()[0]
+        assert done == 5
+    finally:
+        conn.close()
+    assert summary.successfully_retrieved == 5
+    assert len(client.calls) == 3
+

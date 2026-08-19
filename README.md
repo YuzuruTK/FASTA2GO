@@ -90,8 +90,11 @@ uv run python scripts/query_example.py --top 10
 # Enrich all proteins (batched, resumable)
 uv run python scripts/annotate_proteins.py --db proteins.duckdb
 
-# Custom batch size and cache directory
-uv run python scripts/annotate_proteins.py --db proteins.duckdb --batch-size 200 --cache-dir cache/uniprot
+# Custom batch size (max 100) and cache directory
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --batch-size 100 --cache-dir cache/uniprot
+
+# Use 8 concurrent fetch threads for faster retrieval
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --workers 8
 
 # Process only a limited number of accessions (for testing)
 uv run python scripts/annotate_proteins.py --db proteins.duckdb --limit 5000
