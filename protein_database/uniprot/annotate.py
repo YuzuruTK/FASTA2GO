@@ -291,23 +291,22 @@ def annotate_database(
         # Resume: reset in-flight accessions that never completed to pending.
         reset_inflight(conn, pending)
 
-        num_batches = (len(pending) + client.batch_size - 1) // client.batch_size
         progress_bar = tqdm(
-            chunk_list(pending, client.batch_size),
-            total=num_batches,
+            total=len(pending),
             desc="Annotating",
-            unit="batch",
+            unit="protein",
+            leave=True,
         )
-        for batch in progress_bar:
+        for batch in chunk_list(pending, client.batch_size):
             batch_id = cache.batch_id(batch)
             text: str | None = None
             cached = cache.exists(batch_id)
 
+            progress_bar.set_description(f"Annotating [{batch_id[:8]}]")
             if cached:
                 text = cache.load(batch_id)
-                print(f"[{batch_id[:8]}] using cached response ({len(batch)} accessions)")
+                logger.info("Using cached response for batch %s", batch_id)
             else:
-                print(f"[{batch_id[:8]}] fetching {len(batch)} accessions from UniProt...")
                 try:
                     resp = client.fetch_batch(batch)
                     summary.http_requests += 1
@@ -317,7 +316,8 @@ def annotate_database(
                     increment_retry(conn, batch)
                     update_queue_status(conn, batch, STATUS_FAILED)
                     summary.failed += len(batch)
-                    print(f"[{batch_id[:8]}] FAILED after retries: {exc}")
+                    progress_bar.update(len(batch))
+                    progress_bar.set_postfix(**_postfix(summary))
                     continue
 
                 # Cache raw response BEFORE import, so a successful fetch
@@ -333,6 +333,8 @@ def annotate_database(
                 increment_retry(conn, batch)
                 update_queue_status(conn, batch, STATUS_FAILED)
                 summary.failed += len(batch)
+                progress_bar.update(len(batch))
+                progress_bar.set_postfix(**_postfix(summary))
                 continue
 
             # Determine not-found accessions ONLY after a confirmed parse.
@@ -352,19 +354,8 @@ def annotate_database(
                 update_queue_status(conn, not_found, STATUS_NOT_FOUND)
                 summary.not_found += len(not_found)
 
-            print(
-                f"[{batch_id[:8]}] done: {len(annotations)} entries, "
-                f"{len(missing_fn)} missing function, {len(not_found)} not found"
-            )
-
-            progress_bar.set_postfix(
-                {
-                    "retrieved": summary.successfully_retrieved,
-                    "missing_fn": summary.missing_function,
-                    "not_found": summary.not_found,
-                    "failed": summary.failed,
-                }
-            )
+            progress_bar.update(len(batch))
+            progress_bar.set_postfix(**_postfix(summary))
 
         progress_bar.close()
 
@@ -375,6 +366,16 @@ def annotate_database(
         return summary
     finally:
         conn.close()
+
+
+def _postfix(summary: RunSummary) -> dict:
+    """Build the tqdm postfix dict from the run summary."""
+    return {
+        "retrieved": summary.successfully_retrieved,
+        "missing_fn": summary.missing_function,
+        "not_found": summary.not_found,
+        "failed": summary.failed,
+    }
 
 
 def reset_inflight(conn: duckdb.DuckDBPyConnection, pending: list[str]) -> None:
