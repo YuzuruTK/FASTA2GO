@@ -12,6 +12,7 @@ from pathlib import Path
 import duckdb
 from tqdm import tqdm
 
+from protein_database.database.backfill import backfill_features
 from protein_database.database.connection import bulk_upsert
 from protein_database.uniprot.accession import group_accessions_by_local_rows
 from protein_database.uniprot.batching import chunk_list
@@ -269,6 +270,16 @@ def annotate_database(
 
         print("Reading protein table...")
         init_database(conn)
+
+        # Recompute locally-computable features/composition (sequence-derived).
+        # UniProt cannot supply these, so we backfill them from stored sequences.
+        print("Backfilling sequence features and amino-acid composition...")
+        backfill_report = backfill_features(conn)
+        print(
+            f"Backfilled features for {backfill_report['features_written']:,} "
+            f"proteins and composition for {backfill_report['compositions_written']:,} "
+            f"proteins ({backfill_report['errors']} errors)."
+        )
 
         print("Extracting unique UniProt accessions...")
         accession_map = load_accession_map(conn)

@@ -5,7 +5,7 @@ from typing import Any
 
 import duckdb
 
-from protein_database.database.models import SCHEMA_SQL, TABLE_NAMES
+from protein_database.database.models import ANALYSIS_VIEW_SQL, SCHEMA_SQL, TABLE_NAMES
 
 
 def connect(db_path: str | Path) -> duckdb.DuckDBPyConnection:
@@ -30,11 +30,15 @@ def connect(db_path: str | Path) -> duckdb.DuckDBPyConnection:
 def init_database(conn: duckdb.DuckDBPyConnection) -> None:
     """Create all tables in the database if they don't exist.
 
+    Also creates the denormalized ``analysis_data`` view that joins all
+    per-protein tables for analysis purposes.
+
     Args:
         conn: DuckDB connection.
     """
     for ddl in SCHEMA_SQL.values():
         conn.execute(ddl)
+    conn.execute(ANALYSIS_VIEW_SQL)
 
 
 def drop_tables(conn: duckdb.DuckDBPyConnection) -> None:

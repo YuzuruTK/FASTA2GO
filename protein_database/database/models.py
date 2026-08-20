@@ -236,3 +236,76 @@ SCHEMA_SQL = {
         )
     """,
 }
+
+#: DuckDB DDL for the denormalized analysis view joining all per-protein tables.
+ANALYSIS_VIEW_SQL = """
+    CREATE OR REPLACE VIEW analysis_data AS
+    SELECT
+        p.fasta_id,
+        p.source_file,
+        p.description,
+        p.sequence,
+        p.sequence_length,
+        p.created_at,
+        sf.molecular_weight,
+        sf.isoelectric_point,
+        sf.gravy_index,
+        sf.instability_index,
+        sf.aliphatic_index,
+        sf.aromaticity,
+        sf.charge_positive_percentage,
+        sf.charge_negative_percentage,
+        sf.hydrophobic_percentage,
+        sf.polar_percentage,
+        sf.charged_percentage,
+        sf.sulfur_percentage,
+        sf.aromatic_percentage,
+        sf.sequence_entropy,
+        sf.amino_acid_diversity,
+        aac.alanine_percentage,
+        aac.arginine_percentage,
+        aac.asparagine_percentage,
+        aac.aspartic_acid_percentage,
+        aac.cysteine_percentage,
+        aac.glutamine_percentage,
+        aac.glutamic_acid_percentage,
+        aac.glycine_percentage,
+        aac.histidine_percentage,
+        aac.isoleucine_percentage,
+        aac.leucine_percentage,
+        aac.lysine_percentage,
+        aac.methionine_percentage,
+        aac.phenylalanine_percentage,
+        aac.proline_percentage,
+        aac.serine_percentage,
+        aac.threonine_percentage,
+        aac.tryptophan_percentage,
+        aac.tyrosine_percentage,
+        aac.valine_percentage,
+        vf.sequence_quality_score,
+        vf.stability_score,
+        vf.solubility_score,
+        vf.structure_score,
+        vf.overall_score,
+        vf.classification,
+        ua.uniprot_accession,
+        ua.uniprot_id,
+        ua.protein_name,
+        ua.gene_name,
+        ua.function,
+        ua.subcellular_location,
+        ua.protein_existence,
+        ua.organism,
+        ua.keywords,
+        ua.status AS annotation_status,
+        ua.retrieved_at
+    FROM proteins p
+    LEFT JOIN sequence_features sf
+        ON p.fasta_id = sf.fasta_id AND p.source_file = sf.source_file
+    LEFT JOIN amino_acid_composition aac
+        ON p.fasta_id = aac.fasta_id AND p.source_file = aac.source_file
+    LEFT JOIN validation_features vf
+        ON p.fasta_id = vf.fasta_id AND p.source_file = vf.source_file
+    LEFT JOIN uniprot_annotations ua
+        ON p.fasta_id = ua.fasta_id AND p.source_file = ua.source_file
+"""
