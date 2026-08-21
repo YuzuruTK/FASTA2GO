@@ -1,0 +1,1275 @@
+term,category,broad_roles,score,source
+alkyltransferase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+base_excision,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+cdc6,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+cdt1,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+centromere,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+chromatin,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+chromosome,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+clamp,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+cohesin,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+condensin,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+dna,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+dna_binding,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+dna_damage,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+dna_methylase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+dna_recombination,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+dna_repair,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+dna_replication,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+gyrase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+histone,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+holliday_junction,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+homologous_recombination,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+integrase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+minichromosome_maintenance,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+mismatch_repair,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+muth,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+mutl,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+muts,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+nucleoid,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+nucleosome,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+nucleotide_excision,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+origin_recognition_complex,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+photolyase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+plasmid,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+primase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+proliferating_cell_nuclear_antigen,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+rad51,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+reca,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+recombination,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+repair,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+replication,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+replication_origin,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+replication_protein_a,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+resolvase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+reverse_transcriptase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+single_strand_binding,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+sliding_clamp,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+smc,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+telomerase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+telomere,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+transposase,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+transposon,BIOLOGICAL_SIGNAL,DNA-associated Protein,8,manual
+2fe2s,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+4fe4s,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+acetyl_coa,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+adp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+amp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+ascorbic_acid,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+atp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+biotin,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+cdi_gmp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+coa,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+cobalamin,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+coenzyme,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+coenzyme_a,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+coenzyme_q,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+cofactor,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+ctp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+cytochrome_c,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+datp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+dctp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+dgtp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+dihydrofolate,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+dttp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+fad,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+fadh2,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+fe_s_cluster,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+flavin,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+folate,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+gdp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+gtp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+heme,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+iron_sulfur,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+lipoamide,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+lipoic_acid,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+malonyl_coa,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+menaquinone,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+molybdopterin,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+nad,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+nadh,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+nadp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+nadph,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+niacin,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+niacinamide,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+pantothenic_acid,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+phylloquinone,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+plastoquinone,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+ppgpp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+pyridoxal,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+pyridoxal_phosphate,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+pyridoxamine,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+retinal,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+retinol,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+riboflavin,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+s_adenosylmethionine,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+sam,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+siroheme,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+succinyl_coa,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+tetrahydrobiopterin,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+tetrahydrofolate,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+thiamin,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+thiamine,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+thiamine_pyrophosphate,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+tocopherol,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+ttp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+tungsten,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+ubiquinone,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+udp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+udp_glucose,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+utp,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+vanadium,BIOLOGICAL_SIGNAL,Enzyme;Metabolic Protein,8,manual
+caveola,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+cell_surface,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+chloroplast,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+endosome,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+envelope,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+extracellular,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+glycoprotein,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+gpi_anchor,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+inner_envelope,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+inner_membrane,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+integral_membrane,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+lipid_anchor,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+lipid_raft,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+lipoprotein,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+lysosome,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+membrane,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+mitochondrion,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+outer_envelope,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+outer_membrane,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+peripheral_membrane,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+periplasmic,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+peroxisome,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+plasma_membrane,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+secreted,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+thylakoid,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+transmembrane,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+vacuole,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+vesicle,BIOLOGICAL_SIGNAL,Membrane-associated Protein,7,manual
+cobalt,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+copper,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+iron,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+magnesium,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+manganese,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+molybdenum,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+nickel,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+oxygen,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+phosphate,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+potassium,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+selenium,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+sodium,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+sulfur,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+zinc,BIOLOGICAL_SIGNAL,Metabolic Protein,7,manual
+adenosine_deaminase_rna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+alternative_splicing,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+capping,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+capping_enzyme,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+deadenylase,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+decapping,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+exon_junction,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+exosome,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+mirna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+mrna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+ncrna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+nonsense_mediated_decay,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+poly_a_polymerase,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+polyadenylation,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+pseudouridine,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+pseudouridine_synthase,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+ribonuclease_p,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+ribozyme,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_binding,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_editing,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_helicase,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_induced_silencing,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_interference,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_polymerase,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_polymerase_i,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_polymerase_ii,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_polymerase_iii,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_processing,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_silencing,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rna_splicing,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rnase,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rnase_h,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+rrna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+sirna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+small_nuclear_ribonucleoprotein,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+snorna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+snrna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+snrnp,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+splice_factor,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+spliceosome,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+splicing,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+translation,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+translation_elongation,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+translation_initiation,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+trna,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+trna_synthetase,BIOLOGICAL_SIGNAL,RNA-associated Protein,8,manual
+acetylcholine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+adiponectin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+adrenergic,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+agonist,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+akt,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+aldosterone,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+androgen,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+antagonist,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+arf,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+bmp,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+calcineurin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+calcium,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+calmodulin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+camp,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+carbon_monoxide,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+cdc42,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+cgmp,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+chemoattractant,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+chemokine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+chemorepellent,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+chemotaxis,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+colony_stimulating_factor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+corticosterone,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+cortisol,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+cytokine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+diacylglycerol,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+dopamine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+egf,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+eicosanoid,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+epidermal_growth_factor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+epinephrine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+erk,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+erythropoietin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+estrogen,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+fgf,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+fibroblast_growth_factor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+g_protein,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+gaba,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+galpha,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+gbeta,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+ggamma,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+gh,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+ghrelin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+glucagon,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+glutamate,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+glycine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+growth_factor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+gtpase_activating_protein,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+guanine_nucleotide_dissociation_inhibitor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+guanine_nucleotide_exchange_factor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+hedgehog,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+heterotrimeric_g_protein,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+histamine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+hormone,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+hydrogen_sulfide,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+inositol_trisphosphate,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+insulin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+interleukin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+jnk,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+leptin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+leukotriene,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+ligand,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+lymphokine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+mapk,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+melatonin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+messenger,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+monokine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+mtor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+neurotransmitter,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+ngf,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+nitric_oxide,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+norepinephrine,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+notch,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+oxytocin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+p38,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+pdgf,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+pheromone,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+phosphatidylinositol,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+phosphodiesterase,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+phosphorelay,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+pi3k,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+pip2,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+pip3,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+pkb,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+progesterone,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+prolactin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+prostacyclin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+prostaglandin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+protein_kinase_a,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+protein_kinase_c,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+protein_kinase_g,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+quorum,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+rab,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+rac,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+ran,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+ras,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+resistin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+retinoic_acid,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+rho,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+second_messenger,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+serotonin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+signal,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+signal_transduction,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+signaling,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+small_gtpase,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+sonic_hedgehog,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+stem_cell_factor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+testosterone,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+tgf_beta,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+thrombopoietin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+thromboxane,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+thyroid_hormone,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+transforming_growth_factor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+tumor_necrosis_factor,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+vasopressin,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+vegf,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+vitamin_d,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+wnt,BIOLOGICAL_SIGNAL,Signaling Protein,8,manual
+acetylation,CONTEXTUAL,Metabolic Protein,6,manual
+alkaloid,CONTEXTUAL,Metabolic Protein,6,manual
+amino_acid,CONTEXTUAL,Metabolic Protein,6,manual
+amino_acid_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+anabolic,CONTEXTUAL,Metabolic Protein,5,manual
+apoptosis,CONTEXTUAL,Metabolic Protein,6,manual
+autophagy,CONTEXTUAL,Metabolic Protein,6,manual
+autotrophy,CONTEXTUAL,Metabolic Protein,6,manual
+beta_oxidation,CONTEXTUAL,Metabolic Protein,6,manual
+bile_acid_biosynthesis,CONTEXTUAL,Metabolic Protein,6,manual
+biosynthesis,CONTEXTUAL,Metabolic Protein,6,manual
+biotransformation,CONTEXTUAL,Metabolic Protein,6,manual
+calvin_cycle,CONTEXTUAL,Metabolic Protein,6,manual
+carbohydrate,CONTEXTUAL,Metabolic Protein,6,manual
+carbohydrate_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+carbon_fixation,CONTEXTUAL,Metabolic Protein,6,manual
+carbon_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+carotenoid,CONTEXTUAL,Metabolic Protein,6,manual
+catabolism,CONTEXTUAL,Metabolic Protein,6,manual
+cell_cycle,CONTEXTUAL,Metabolic Protein,6,manual
+cell_division,CONTEXTUAL,Metabolic Protein,6,manual
+cell_wall_biosynthesis,CONTEXTUAL,Metabolic Protein,6,manual
+chemiosmosis,CONTEXTUAL,Metabolic Protein,6,manual
+chlorophyll,CONTEXTUAL,Metabolic Protein,6,manual
+cholesterol,CONTEXTUAL,Metabolic Protein,6,manual
+cholesterol_biosynthesis,CONTEXTUAL,Metabolic Protein,6,manual
+circadian,CONTEXTUAL,Metabolic Protein,6,manual
+citrate,CONTEXTUAL,Metabolic Protein,6,manual
+conjugation,CONTEXTUAL,Metabolic Protein,6,manual
+cytokinesis,CONTEXTUAL,Metabolic Protein,6,manual
+degradation,CONTEXTUAL,Metabolic Protein,5,manual
+degradative,CONTEXTUAL,Metabolic Protein,5,manual
+dephosphorylation,CONTEXTUAL,Metabolic Protein,6,manual
+detoxification,CONTEXTUAL,Metabolic Protein,6,manual
+development,CONTEXTUAL,Metabolic Protein,6,manual
+differentiation,CONTEXTUAL,Metabolic Protein,6,manual
+dosage_compensation,CONTEXTUAL,Metabolic Protein,6,manual
+electron_transfer,CONTEXTUAL,Metabolic Protein,6,manual
+electron_transport,CONTEXTUAL,Metabolic Protein,6,manual
+endocytosis,CONTEXTUAL,Metabolic Protein,6,manual
+energy_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+epigenetic,CONTEXTUAL,Metabolic Protein,6,manual
+exocytosis,CONTEXTUAL,Metabolic Protein,6,manual
+fatty_acid,CONTEXTUAL,Metabolic Protein,6,manual
+fatty_acid_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+fermentation,CONTEXTUAL,Metabolic Protein,6,manual
+flavonoid,CONTEXTUAL,Metabolic Protein,6,manual
+gene_expression,CONTEXTUAL,Metabolic Protein,6,manual
+gene_regulation,CONTEXTUAL,Metabolic Protein,6,manual
+gluconeogenesis,CONTEXTUAL,Metabolic Protein,6,manual
+glucuronidation,CONTEXTUAL,Metabolic Protein,6,manual
+glycogen_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+glycolysis,CONTEXTUAL,Metabolic Protein,6,manual
+glycosylation,CONTEXTUAL,Metabolic Protein,6,manual
+heme_biosynthesis,CONTEXTUAL,Metabolic Protein,6,manual
+homeostasis,CONTEXTUAL,Metabolic Protein,6,manual
+imprinting,CONTEXTUAL,Metabolic Protein,6,manual
+isoprenoid,CONTEXTUAL,Metabolic Protein,6,manual
+katabolic,CONTEXTUAL,Metabolic Protein,5,manual
+ketogenesis,CONTEXTUAL,Metabolic Protein,6,manual
+ketolysis,CONTEXTUAL,Metabolic Protein,6,manual
+krebs_cycle,CONTEXTUAL,Metabolic Protein,6,manual
+lignin_biosynthesis,CONTEXTUAL,Metabolic Protein,6,manual
+lipid,CONTEXTUAL,Metabolic Protein,6,manual
+lipid_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+lipid_modification,CONTEXTUAL,Metabolic Protein,6,manual
+lipogenesis,CONTEXTUAL,Metabolic Protein,6,manual
+lipolysis,CONTEXTUAL,Metabolic Protein,6,manual
+meiosis,CONTEXTUAL,Metabolic Protein,6,manual
+membrane_trafficking,CONTEXTUAL,Metabolic Protein,6,manual
+metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+methanogenesis,CONTEXTUAL,Metabolic Protein,6,manual
+methylation,CONTEXTUAL,Metabolic Protein,6,manual
+methylotrophy,CONTEXTUAL,Metabolic Protein,6,manual
+mitosis,CONTEXTUAL,Metabolic Protein,6,manual
+morphogenesis,CONTEXTUAL,Metabolic Protein,6,manual
+necrosis,CONTEXTUAL,Metabolic Protein,6,manual
+neddylation,CONTEXTUAL,Metabolic Protein,6,manual
+nitrogen_fixation,CONTEXTUAL,Metabolic Protein,6,manual
+nitrogen_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+nucleotide,CONTEXTUAL,Metabolic Protein,6,manual
+nucleotide_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+oxidative_phosphorylation,CONTEXTUAL,Metabolic Protein,6,manual
+pathway,CONTEXTUAL,Metabolic Protein,5,manual
+pentose_phosphate,CONTEXTUAL,Metabolic Protein,6,manual
+peptidoglycan,CONTEXTUAL,Metabolic Protein,6,manual
+peptidoglycan_biosynthesis,CONTEXTUAL,Metabolic Protein,6,manual
+phosphorylation,CONTEXTUAL,Metabolic Protein,6,manual
+photophosphorylation,CONTEXTUAL,Metabolic Protein,6,manual
+photosynthesis,CONTEXTUAL,Metabolic Protein,6,manual
+polysaccharide,CONTEXTUAL,Metabolic Protein,6,manual
+porphyrin,CONTEXTUAL,Metabolic Protein,6,manual
+prenylation,CONTEXTUAL,Metabolic Protein,6,manual
+proliferation,CONTEXTUAL,Metabolic Protein,6,manual
+proteasome,CONTEXTUAL,Metabolic Protein,6,manual
+proteolysis,CONTEXTUAL,Metabolic Protein,6,manual
+proton_transport,CONTEXTUAL,Metabolic Protein,6,manual
+purine,CONTEXTUAL,Metabolic Protein,6,manual
+pyrimidine,CONTEXTUAL,Metabolic Protein,6,manual
+redox,CONTEXTUAL,Metabolic Protein,6,manual
+respiration,CONTEXTUAL,Metabolic Protein,6,manual
+secretion,CONTEXTUAL,Metabolic Protein,6,manual
+senescence,CONTEXTUAL,Metabolic Protein,6,manual
+starch_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+steroid,CONTEXTUAL,Metabolic Protein,6,manual
+steroidogenesis,CONTEXTUAL,Metabolic Protein,6,manual
+sulfation,CONTEXTUAL,Metabolic Protein,6,manual
+sulfur_metabolism,CONTEXTUAL,Metabolic Protein,6,manual
+sumoylation,CONTEXTUAL,Metabolic Protein,6,manual
+tca,CONTEXTUAL,Metabolic Protein,6,manual
+terpenoid,CONTEXTUAL,Metabolic Protein,6,manual
+transcytosis,CONTEXTUAL,Metabolic Protein,6,manual
+ubiquitin_proteasome,CONTEXTUAL,Metabolic Protein,6,manual
+ubiquitination,CONTEXTUAL,Metabolic Protein,6,manual
+urea_cycle,CONTEXTUAL,Metabolic Protein,6,manual
+vesicular_transport,CONTEXTUAL,Metabolic Protein,6,manual
+x_inactivation,CONTEXTUAL,Metabolic Protein,6,manual
+alpha_crystallin,FUNCTIONAL_LABEL,Chaperone,9,manual
+bip,FUNCTIONAL_LABEL,Chaperone,9,manual
+calnexin,FUNCTIONAL_LABEL,Chaperone,9,manual
+calreticulin,FUNCTIONAL_LABEL,Chaperone,9,manual
+chaperone,FUNCTIONAL_LABEL,Chaperone,9,manual
+chaperonin,FUNCTIONAL_LABEL,Chaperone,9,manual
+clpa,FUNCTIONAL_LABEL,Chaperone,9,manual
+clpb,FUNCTIONAL_LABEL,Chaperone,9,manual
+clpx,FUNCTIONAL_LABEL,Chaperone,9,manual
+cochaperone,FUNCTIONAL_LABEL,Chaperone,9,manual
+dnaj,FUNCTIONAL_LABEL,Chaperone,9,manual
+dnak,FUNCTIONAL_LABEL,Chaperone,9,manual
+erp57,FUNCTIONAL_LABEL,Chaperone,9,manual
+foldase,FUNCTIONAL_LABEL,Chaperone,9,manual
+folding,FUNCTIONAL_LABEL,Chaperone,9,manual
+groel,FUNCTIONAL_LABEL,Chaperone,9,manual
+groes,FUNCTIONAL_LABEL,Chaperone,9,manual
+grp78,FUNCTIONAL_LABEL,Chaperone,9,manual
+grp94,FUNCTIONAL_LABEL,Chaperone,9,manual
+heat_shock,FUNCTIONAL_LABEL,Chaperone,9,manual
+heat_shock_protein,FUNCTIONAL_LABEL,Chaperone,9,manual
+hsp,FUNCTIONAL_LABEL,Chaperone,9,manual
+hsp100,FUNCTIONAL_LABEL,Chaperone,9,manual
+hsp40,FUNCTIONAL_LABEL,Chaperone,9,manual
+hsp60,FUNCTIONAL_LABEL,Chaperone,9,manual
+hsp70,FUNCTIONAL_LABEL,Chaperone,9,manual
+hsp90,FUNCTIONAL_LABEL,Chaperone,9,manual
+hspb,FUNCTIONAL_LABEL,Chaperone,9,manual
+htpg,FUNCTIONAL_LABEL,Chaperone,9,manual
+pdi,FUNCTIONAL_LABEL,Chaperone,9,manual
+protein_disulfide_isomerase,FUNCTIONAL_LABEL,Chaperone,9,manual
+protein_folding,FUNCTIONAL_LABEL,Chaperone,9,manual
+refolding,FUNCTIONAL_LABEL,Chaperone,9,manual
+secb,FUNCTIONAL_LABEL,Chaperone,9,manual
+small_heat_shock_protein,FUNCTIONAL_LABEL,Chaperone,9,manual
+trigger_factor,FUNCTIONAL_LABEL,Chaperone,9,manual
+abrin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+antibacterial,FUNCTIONAL_LABEL,Defense Protein,9,manual
+antibody,FUNCTIONAL_LABEL,Defense Protein,9,manual
+antifungal,FUNCTIONAL_LABEL,Defense Protein,9,manual
+antigen,FUNCTIONAL_LABEL,Defense Protein,9,manual
+antimicrobial,FUNCTIONAL_LABEL,Defense Protein,9,manual
+antitoxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+antiviral,FUNCTIONAL_LABEL,Defense Protein,9,manual
+avirulence,FUNCTIONAL_LABEL,Defense Protein,9,manual
+bacteriocin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+botulinum_toxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+c3,FUNCTIONAL_LABEL,Defense Protein,9,manual
+c5,FUNCTIONAL_LABEL,Defense Protein,9,manual
+capsule,FUNCTIONAL_LABEL,Defense Protein,9,manual
+cas3,FUNCTIONAL_LABEL,Defense Protein,9,manual
+cas9,FUNCTIONAL_LABEL,Defense Protein,9,manual
+cathelicidin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+cholera_toxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+colicin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+complement,FUNCTIONAL_LABEL,Defense Protein,9,manual
+complement_component,FUNCTIONAL_LABEL,Defense Protein,9,manual
+crispr,FUNCTIONAL_LABEL,Defense Protein,9,manual
+cytolysin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+defense,FUNCTIONAL_LABEL,Defense Protein,9,manual
+defensin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+dermcidin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+diphtheria_toxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+effector,FUNCTIONAL_LABEL,Defense Protein,9,manual
+endotoxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+enterotoxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+epitope,FUNCTIONAL_LABEL,Defense Protein,9,manual
+exotoxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+fab,FUNCTIONAL_LABEL,Defense Protein,9,manual
+fc,FUNCTIONAL_LABEL,Defense Protein,9,manual
+heavy_chain,FUNCTIONAL_LABEL,Defense Protein,9,manual
+hemolysin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+histatin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+hla,FUNCTIONAL_LABEL,Defense Protein,9,manual
+iga,FUNCTIONAL_LABEL,Defense Protein,9,manual
+igd,FUNCTIONAL_LABEL,Defense Protein,9,manual
+ige,FUNCTIONAL_LABEL,Defense Protein,9,manual
+igm,FUNCTIONAL_LABEL,Defense Protein,9,manual
+immune,FUNCTIONAL_LABEL,Defense Protein,9,manual
+immunity,FUNCTIONAL_LABEL,Defense Protein,9,manual
+immunoglobulin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+immunoglobulin_g,FUNCTIONAL_LABEL,Defense Protein,9,manual
+immunotoxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+interferon,FUNCTIONAL_LABEL,Defense Protein,9,manual
+invasin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+lactoferrin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+leukocidin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+light_chain,FUNCTIONAL_LABEL,Defense Protein,9,manual
+major_histocompatibility,FUNCTIONAL_LABEL,Defense Protein,9,manual
+mhc,FUNCTIONAL_LABEL,Defense Protein,9,manual
+microcin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+neurotoxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+nisin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+opsonin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+pertussis_toxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+phage,FUNCTIONAL_LABEL,Defense Protein,9,manual
+phagocytosis,FUNCTIONAL_LABEL,Defense Protein,9,manual
+plantaricin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+pyocin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+resistance,FUNCTIONAL_LABEL,Defense Protein,9,manual
+restriction,FUNCTIONAL_LABEL,Defense Protein,9,manual
+restriction_modification,FUNCTIONAL_LABEL,Defense Protein,9,manual
+ricin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+saporin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+self_nonself,FUNCTIONAL_LABEL,Defense Protein,9,manual
+shiga_toxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+tetanus_toxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+thrombocidin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+toxin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+transferrin,FUNCTIONAL_LABEL,Defense Protein,9,manual
+type_iii_secretion,FUNCTIONAL_LABEL,Defense Protein,9,manual
+type_iv_secretion,FUNCTIONAL_LABEL,Defense Protein,9,manual
+virulence,FUNCTIONAL_LABEL,Defense Protein,9,manual
+3_hydroxyacyl_coa_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+acetyl_coa_carboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+acetyl_coa_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+acetylcholinesterase,FUNCTIONAL_LABEL,Enzyme,10,manual
+acetyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aconitase,FUNCTIONAL_LABEL,Enzyme,10,manual
+acyl_coa_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+acyl_coa_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+adenine_nucleotide_translocase,FUNCTIONAL_LABEL,Enzyme,10,manual
+adenine_phosphoribosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+adenosine_deaminase,FUNCTIONAL_LABEL,Enzyme,10,manual
+adenosine_triphosphatase,FUNCTIONAL_LABEL,Enzyme,10,manual
+adenylate_cyclase,FUNCTIONAL_LABEL,Enzyme,10,manual
+adenylyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+alanyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+alcohol_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aldehyde_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aldehyde_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aldolase,FUNCTIONAL_LABEL,Enzyme,10,manual
+alpha_ketoglutarate_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aminoacyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aminolevulinic_acid_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aminopeptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aminotransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+amylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+ap_endonuclease,FUNCTIONAL_LABEL,Enzyme,10,manual
+arginase,FUNCTIONAL_LABEL,Enzyme,10,manual
+arginine_decarboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+arginyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+argonaut,FUNCTIONAL_LABEL,Enzyme,10,manual
+arogenate_dehydratase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aromatase,FUNCTIONAL_LABEL,Enzyme,10,manual
+asparagine_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+asparaginyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+aspartic_protease,FUNCTIONAL_LABEL,Enzyme,10,manual
+aspartyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+atp_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+atpase,FUNCTIONAL_LABEL,Enzyme,10,manual
+beta_lactamase,FUNCTIONAL_LABEL,Enzyme,10,manual
+beta_secretase,FUNCTIONAL_LABEL,Enzyme,10,manual
+bisphosphoglycerate_mutase,FUNCTIONAL_LABEL,Enzyme,10,manual
+branched_chain_ketoacid_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+butyrylcholinesterase,FUNCTIONAL_LABEL,Enzyme,10,manual
+calpain,FUNCTIONAL_LABEL,Enzyme,10,manual
+carbamoyl_phosphate_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+carbon_monoxide_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+carbonic_anhydrase,FUNCTIONAL_LABEL,Enzyme,10,manual
+carboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+carboxypeptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+caspase,FUNCTIONAL_LABEL,Enzyme,10,manual
+catalase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cathepsin,FUNCTIONAL_LABEL,Enzyme,10,manual
+cellulase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cellulose_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cephalosporinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+ceramidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+checkpoint_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+chitin_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+chitinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+choline_acetyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cholinesterase,FUNCTIONAL_LABEL,Enzyme,10,manual
+chymotrypsin,FUNCTIONAL_LABEL,Enzyme,10,manual
+citrate_lyase,FUNCTIONAL_LABEL,Enzyme,10,manual
+coagulation_factor,FUNCTIONAL_LABEL,Enzyme,10,manual
+collagenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+creatine_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cyclase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cyclin_dependent_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cyclooxygenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cyclophilin,FUNCTIONAL_LABEL,Enzyme,10,manual
+cysteine_protease,FUNCTIONAL_LABEL,Enzyme,10,manual
+cysteinyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cytidine_deaminase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cytochrome,FUNCTIONAL_LABEL,Enzyme,10,manual
+cytochrome_c_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+cytochrome_p450,FUNCTIONAL_LABEL,Enzyme,10,manual
+d_amino_acid_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+deacetylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+deaminase,FUNCTIONAL_LABEL,Enzyme,10,manual
+decarboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dehydratase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+deoxycytidine_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+deoxyribose_phosphate_aldolase,FUNCTIONAL_LABEL,Enzyme,10,manual
+desaturase,FUNCTIONAL_LABEL,Enzyme,10,manual
+deubiquitinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+diacylglycerol_lipase,FUNCTIONAL_LABEL,Enzyme,10,manual
+diamine_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dicer,FUNCTIONAL_LABEL,Enzyme,10,manual
+dihydrofolate_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dihydrolipoamide_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dihydropyrimidine_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dihydroxy_acid_dehydratase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dioxygenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dipeptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+disulfide_isomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dna_glycosylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dna_ligase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dna_methyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dna_topoisomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+dopa_decarboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+drosha,FUNCTIONAL_LABEL,Enzyme,10,manual
+dynamin,FUNCTIONAL_LABEL,Enzyme,10,manual
+elastase,FUNCTIONAL_LABEL,Enzyme,10,manual
+endonuclease,FUNCTIONAL_LABEL,Enzyme,10,manual
+endopeptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+enolase,FUNCTIONAL_LABEL,Enzyme,10,manual
+epimerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+epoxide_hydrolase,FUNCTIONAL_LABEL,Enzyme,10,manual
+esterase,FUNCTIONAL_LABEL,Enzyme,10,manual
+exonuclease,FUNCTIONAL_LABEL,Enzyme,10,manual
+exopeptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+f0f1_atp_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+farnesyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+fatty_acid_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+ferredoxin,FUNCTIONAL_LABEL,Enzyme,10,manual
+fibrinolysin,FUNCTIONAL_LABEL,Enzyme,10,manual
+fkbp,FUNCTIONAL_LABEL,Enzyme,10,manual
+flap_endonuclease,FUNCTIONAL_LABEL,Enzyme,10,manual
+flavoprotein,FUNCTIONAL_LABEL,Enzyme,10,manual
+folate_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+formate_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+fructokinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+fructose_bisphosphate_aldolase,FUNCTIONAL_LABEL,Enzyme,10,manual
+fucosidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+fucosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+fumarase,FUNCTIONAL_LABEL,Enzyme,10,manual
+fumarate_hydratase,FUNCTIONAL_LABEL,Enzyme,10,manual
+galactosidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+galactosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+gamma_secretase,FUNCTIONAL_LABEL,Enzyme,10,manual
+gelatinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+geranylgeranyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glucanase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glucokinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glucosamine_phosphate_acetyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glucose_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glucose_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glucosidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glucosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glucuronosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutamate_decarboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutamate_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutamate_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutamine_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutaminyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutamyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutaredoxin,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutathione_peroxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutathione_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutathione_s_transferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glutathione_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glycerol_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glycogen_phosphorylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glycogen_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glycosidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glycosylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glycosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+glycyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+gtpase,FUNCTIONAL_LABEL,Enzyme,10,manual
+guanine_deaminase,FUNCTIONAL_LABEL,Enzyme,10,manual
+guanylate_cyclase,FUNCTIONAL_LABEL,Enzyme,10,manual
+guanylyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+helicase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hexokinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+histidine_ammonia_lyase,FUNCTIONAL_LABEL,Enzyme,10,manual
+histidine_decarboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+histidine_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+histidyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+histone_acetyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hormone_sensitive_lipase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hyaluronan_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hyaluronidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hydrolase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hydroxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hydroxysteroid_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+hypoxanthine_phosphoribosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+inositol_phosphatase,FUNCTIONAL_LABEL,Enzyme,10,manual
+isocitrate_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+isocitrate_lyase,FUNCTIONAL_LABEL,Enzyme,10,manual
+isoleucyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+isomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+l_amino_acid_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+laccase,FUNCTIONAL_LABEL,Enzyme,10,manual
+lactamase,FUNCTIONAL_LABEL,Enzyme,10,manual
+lactase,FUNCTIONAL_LABEL,Enzyme,10,manual
+lactate_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+leucyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+leukotriene_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+ligase,FUNCTIONAL_LABEL,Enzyme,10,manual
+lipase,FUNCTIONAL_LABEL,Enzyme,10,manual
+lipoprotein_lipase,FUNCTIONAL_LABEL,Enzyme,10,manual
+lipoxygenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+lyase,FUNCTIONAL_LABEL,Enzyme,10,manual
+lysozyme,FUNCTIONAL_LABEL,Enzyme,10,manual
+lysyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+malate_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+malate_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+maltase,FUNCTIONAL_LABEL,Enzyme,10,manual
+mannosidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+map_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+matrilysin,FUNCTIONAL_LABEL,Enzyme,10,manual
+matrix_metalloproteinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+metalloprotease,FUNCTIONAL_LABEL,Enzyme,10,manual
+methionine_sulfoxide_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+methionyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+methylmalonyl_coa_mutase,FUNCTIONAL_LABEL,Enzyme,10,manual
+methyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+mitochondrial_translocase,FUNCTIONAL_LABEL,Enzyme,10,manual
+mitogen_activated_protein_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+monoacylglycerol_lipase,FUNCTIONAL_LABEL,Enzyme,10,manual
+monoamine_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+monooxygenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+mutase,FUNCTIONAL_LABEL,Enzyme,10,manual
+myristoyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+nadph_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+neuraminidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+nitrate_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+nitric_oxide_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+nitrite_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+nitrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+nuclease,FUNCTIONAL_LABEL,Enzyme,10,manual
+nucleoside_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+nucleotidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+nucleotidyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+oligopeptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+ornithine_decarboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+oxidoreductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+oxygenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+palmitoyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+parvulin,FUNCTIONAL_LABEL,Enzyme,10,manual
+penicillinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+pepsin,FUNCTIONAL_LABEL,Enzyme,10,manual
+peptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+peptidylprolyl_isomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+peroxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phenylalanine_ammonia_lyase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phenylalanyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphatase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphate_carrier,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphatidylinositol_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphatidylinositol_phospholipase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphofructokinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphoglucomutase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphoglucosamine_mutase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphoglucose_isomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphoglycerate_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphoglycerate_mutase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphoinositide_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phospholipase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phospholipase_a2,FUNCTIONAL_LABEL,Enzyme,10,manual
+phospholipase_c,FUNCTIONAL_LABEL,Enzyme,10,manual
+phospholipase_d,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphoprotein_phosphatase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphoribosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+phosphotransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+photoisomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+piwi,FUNCTIONAL_LABEL,Enzyme,10,manual
+plasmin,FUNCTIONAL_LABEL,Enzyme,10,manual
+polyketide_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+polymerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+polyphenol_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+porphobilinogen_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+prenyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+prolyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+propionyl_coa_carboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+prostaglandin_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+protease,FUNCTIONAL_LABEL,Enzyme,10,manual
+protein_arginine_methyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+protein_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+pyrophosphatase,FUNCTIONAL_LABEL,Enzyme,10,manual
+pyruvate_carboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+pyruvate_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+pyruvate_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+quinone_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+racemase,FUNCTIONAL_LABEL,Enzyme,10,manual
+recombinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+renin,FUNCTIONAL_LABEL,Enzyme,10,manual
+restriction_enzyme,FUNCTIONAL_LABEL,Enzyme,10,manual
+retinal_isomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+rhodanese,FUNCTIONAL_LABEL,Enzyme,10,manual
+ribonuclease,FUNCTIONAL_LABEL,Enzyme,10,manual
+ribonucleotide_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+ribosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+rna_ligase,FUNCTIONAL_LABEL,Enzyme,10,manual
+rna_methyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+rubredoxin,FUNCTIONAL_LABEL,Enzyme,10,manual
+sec_translocase,FUNCTIONAL_LABEL,Enzyme,10,manual
+secretase,FUNCTIONAL_LABEL,Enzyme,10,manual
+serine_dehydratase,FUNCTIONAL_LABEL,Enzyme,10,manual
+serine_protease,FUNCTIONAL_LABEL,Enzyme,10,manual
+serine_threonine_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+serine_threonine_phosphatase,FUNCTIONAL_LABEL,Enzyme,10,manual
+seryl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+sialidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+sialyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+signal_peptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+sphingomyelinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+starch_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+stromelysin,FUNCTIONAL_LABEL,Enzyme,10,manual
+subtilisin,FUNCTIONAL_LABEL,Enzyme,10,manual
+succinate_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+succinyl_coa_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+sucrase,FUNCTIONAL_LABEL,Enzyme,10,manual
+sulfite_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+sulfite_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+sulfotransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+sumo_ligase,FUNCTIONAL_LABEL,Enzyme,10,manual
+superoxide_dismutase,FUNCTIONAL_LABEL,Enzyme,10,manual
+synaptotagmin,FUNCTIONAL_LABEL,Enzyme,10,manual
+synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+tat_translocase,FUNCTIONAL_LABEL,Enzyme,10,manual
+thermolysin,FUNCTIONAL_LABEL,Enzyme,10,manual
+thioesterase,FUNCTIONAL_LABEL,Enzyme,10,manual
+thioredoxin,FUNCTIONAL_LABEL,Enzyme,10,manual
+thioredoxin_reductase,FUNCTIONAL_LABEL,Enzyme,10,manual
+threonine_aldolase,FUNCTIONAL_LABEL,Enzyme,10,manual
+threonine_dehydratase,FUNCTIONAL_LABEL,Enzyme,10,manual
+threonine_protease,FUNCTIONAL_LABEL,Enzyme,10,manual
+threonyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+thrombin,FUNCTIONAL_LABEL,Enzyme,10,manual
+thymidine_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+thymidylate_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+topoisomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+topoisomerase_i,FUNCTIONAL_LABEL,Enzyme,10,manual
+topoisomerase_ii,FUNCTIONAL_LABEL,Enzyme,10,manual
+transaminase,FUNCTIONAL_LABEL,Enzyme,10,manual
+transferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+translocase,FUNCTIONAL_LABEL,Enzyme,10,manual
+triosephosphate_isomerase,FUNCTIONAL_LABEL,Enzyme,10,manual
+tripeptidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+trypsin,FUNCTIONAL_LABEL,Enzyme,10,manual
+tryptophanyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+tyrosinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+tyrosine_ammonia_lyase,FUNCTIONAL_LABEL,Enzyme,10,manual
+tyrosine_decarboxylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+tyrosine_kinase,FUNCTIONAL_LABEL,Enzyme,10,manual
+tyrosine_phosphatase,FUNCTIONAL_LABEL,Enzyme,10,manual
+tyrosyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+ubiquitin_conjugating_enzyme,FUNCTIONAL_LABEL,Enzyme,10,manual
+ubiquitin_ligase,FUNCTIONAL_LABEL,Enzyme,10,manual
+uracil_dna_glycosylase,FUNCTIONAL_LABEL,Enzyme,10,manual
+uracil_phosphoribosyltransferase,FUNCTIONAL_LABEL,Enzyme,10,manual
+urease,FUNCTIONAL_LABEL,Enzyme,10,manual
+uroporphyrinogen_synthase,FUNCTIONAL_LABEL,Enzyme,10,manual
+valyl_trna_synthetase,FUNCTIONAL_LABEL,Enzyme,10,manual
+xanthine_dehydrogenase,FUNCTIONAL_LABEL,Enzyme,10,manual
+xanthine_oxidase,FUNCTIONAL_LABEL,Enzyme,10,manual
+xylanase,FUNCTIONAL_LABEL,Enzyme,10,manual
+actin_binding,FUNCTIONAL_LABEL,Motor Protein,9,manual
+axonemal,FUNCTIONAL_LABEL,Motor Protein,9,manual
+axonemal_dynein,FUNCTIONAL_LABEL,Motor Protein,9,manual
+ciliary,FUNCTIONAL_LABEL,Motor Protein,9,manual
+contractile,FUNCTIONAL_LABEL,Motor Protein,9,manual
+cytoplasmic_dynein,FUNCTIONAL_LABEL,Motor Protein,9,manual
+dynein,FUNCTIONAL_LABEL,Motor Protein,9,manual
+dynein_heavy_chain,FUNCTIONAL_LABEL,Motor Protein,9,manual
+dynein_intermediate_chain,FUNCTIONAL_LABEL,Motor Protein,9,manual
+dynein_light_chain,FUNCTIONAL_LABEL,Motor Protein,9,manual
+flagellar,FUNCTIONAL_LABEL,Motor Protein,9,manual
+kinesin,FUNCTIONAL_LABEL,Motor Protein,9,manual
+motor,FUNCTIONAL_LABEL,Motor Protein,9,manual
+myosin,FUNCTIONAL_LABEL,Motor Protein,9,manual
+myosin_i,FUNCTIONAL_LABEL,Motor Protein,9,manual
+myosin_ii,FUNCTIONAL_LABEL,Motor Protein,9,manual
+myosin_v,FUNCTIONAL_LABEL,Motor Protein,9,manual
+prestin,FUNCTIONAL_LABEL,Motor Protein,9,manual
+acetylcholine_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+adhesin,FUNCTIONAL_LABEL,Receptor;Signaling Protein,9,manual
+adhesion,FUNCTIONAL_LABEL,Receptor;Signaling Protein,9,manual
+adrenergic_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+alpha_adrenergic_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+ampa_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+b_cell_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+beta_adrenergic_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+cadherin,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+cannabinoid_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+cell_adhesion,FUNCTIONAL_LABEL,Receptor;Signaling Protein,9,manual
+chemokine_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+cytokine_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+death_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+dopamine_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+epidermal_growth_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+fas_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+fc_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+fibroblast_growth_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+g_protein_coupled_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+gaba_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+glutamate_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+glycine_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+growth_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+histamine_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+immunoglobulin_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+insulin_like_growth_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+insulin_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+integrin,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+ionotropic_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+kainate_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+ldl_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+lectin,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+lipoprotein_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+mannose_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+metabotropic_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+muscarinic_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+nerve_growth_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+nicotinic_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+nmda_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+nod_like_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+nuclear_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+opioid_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+opsin,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+pattern_recognition_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+platelet_derived_growth_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+rhodopsin,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+rig_like_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+scavenger_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+selectin,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+serotonin_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+steroid_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+t_cell_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+tnf_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+toll_like_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+transferrin_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+transforming_growth_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+tumor_necrosis_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+vascular_endothelial_growth_factor_receptor,FUNCTIONAL_LABEL,Receptor;Signaling Protein,10,manual
+receptor_kinase,FUNCTIONAL_LABEL,Receptor;Signaling Protein;Enzyme,10,manual
+receptor_tyrosine_kinase,FUNCTIONAL_LABEL,Receptor;Signaling Protein;Enzyme,10,manual
+activation,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+activator,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+anti_sigma,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+anti_terminator,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+ap_1,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+basal_transcription_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+bhlh,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+bzip,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+chromatin_remodeling,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+coactivator,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+corepressor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+creb,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+elongation_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+enhancer,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+ets_domain,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+forkhead,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+general_transcription_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+helix_loop_helix,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+helix_turn_helix,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+histone_deacetylase,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+histone_demethylase,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+histone_methyltransferase,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+homeobox,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+homeodomain,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+hox,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+initiation_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+leucine_zipper,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+mediator,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+methyl_cpg_binding,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+nf_kb,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+nuclear_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+operator,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+pax,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+polycomb,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+pou_domain,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+promoter,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+regulator,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+replication_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+repression,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+repressor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+response_regulator,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+rho_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+riboswitch,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+sensor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+sigma,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+sigma_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+silencer,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+smad,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+sox,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+stat,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+swi_snf,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+t_box,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+tata_binding_protein,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+termination_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+terminator,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+tfii,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+tfiid,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+transcription,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+transcription_factor,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+transcriptional,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+trithorax,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+two_component,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+winged_helix,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+zinc_finger,FUNCTIONAL_LABEL,Regulatory Protein,10,manual
+16s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+18s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+23s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+28s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+30s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+40s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+5.8s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+50s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+5s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+60s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+70s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+80s,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+large_subunit,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+ribosomal,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+ribosomal_protein,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+ribosomal_rna,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+ribosome,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+small_subunit,FUNCTIONAL_LABEL,Ribosomal Protein,10,manual
+albumin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+beta_casein,FUNCTIONAL_LABEL,Storage Protein,9,manual
+bone_sialoprotein,FUNCTIONAL_LABEL,Storage Protein,9,manual
+calcium_storage,FUNCTIONAL_LABEL,Storage Protein,9,manual
+calsequestrin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+casein,FUNCTIONAL_LABEL,Storage Protein,9,manual
+conglycinin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+ferritin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+gliadin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+glutelin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+gluten,FUNCTIONAL_LABEL,Storage Protein,9,manual
+glycinin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+heme_storage,FUNCTIONAL_LABEL,Storage Protein,9,manual
+hemosiderin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+iron_storage,FUNCTIONAL_LABEL,Storage Protein,9,manual
+kappa_casein,FUNCTIONAL_LABEL,Storage Protein,9,manual
+lactalbumin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+lactoglobulin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+legumin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+metal_storage,FUNCTIONAL_LABEL,Storage Protein,9,manual
+metallothionein,FUNCTIONAL_LABEL,Storage Protein,9,manual
+osteocalcin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+osteopontin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+ovalbumin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+ovotransferrin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+phytochelatin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+prolamin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+reservoir,FUNCTIONAL_LABEL,Storage Protein,9,manual
+seed_storage,FUNCTIONAL_LABEL,Storage Protein,9,manual
+serum_albumin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+storage,FUNCTIONAL_LABEL,Storage Protein,9,manual
+vicilin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+vitellogenin,FUNCTIONAL_LABEL,Storage Protein,9,manual
+zein,FUNCTIONAL_LABEL,Storage Protein,9,manual
+actin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+adherens_junction,FUNCTIONAL_LABEL,Structural Protein,9,manual
+aggrecan,FUNCTIONAL_LABEL,Structural Protein,9,manual
+amelogenin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+ankyrin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+capsid,FUNCTIONAL_LABEL,Structural Protein,9,manual
+caveolin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+cell_wall,FUNCTIONAL_LABEL,Structural Protein,9,manual
+cellulose,FUNCTIONAL_LABEL,Structural Protein,9,manual
+centriole,FUNCTIONAL_LABEL,Structural Protein,9,manual
+centrosome,FUNCTIONAL_LABEL,Structural Protein,9,manual
+chitin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+cilia,FUNCTIONAL_LABEL,Structural Protein,9,manual
+clathrin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+claudin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+coatomer,FUNCTIONAL_LABEL,Structural Protein,9,manual
+collagen,FUNCTIONAL_LABEL,Structural Protein,9,manual
+connexin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+copi,FUNCTIONAL_LABEL,Structural Protein,9,manual
+copii,FUNCTIONAL_LABEL,Structural Protein,9,manual
+cytoskeleton,FUNCTIONAL_LABEL,Structural Protein,9,manual
+decorin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+desmin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+desmosome,FUNCTIONAL_LABEL,Structural Protein,9,manual
+dystrophin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+elastin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+enamel,FUNCTIONAL_LABEL,Structural Protein,9,manual
+extracellular_matrix,FUNCTIONAL_LABEL,Structural Protein,9,manual
+ezrin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+fibrillin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+fibrin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+fibroin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+fibronectin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+filament,FUNCTIONAL_LABEL,Structural Protein,9,manual
+fimbrial,FUNCTIONAL_LABEL,Structural Protein,9,manual
+flagellin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+flagellum,FUNCTIONAL_LABEL,Structural Protein,9,manual
+focal_adhesion,FUNCTIONAL_LABEL,Structural Protein,9,manual
+gap_junction,FUNCTIONAL_LABEL,Structural Protein,9,manual
+gel,FUNCTIONAL_LABEL,Structural Protein,9,manual
+glycosaminoglycan,FUNCTIONAL_LABEL,Structural Protein,9,manual
+hemidesmosome,FUNCTIONAL_LABEL,Structural Protein,9,manual
+hyaluronan,FUNCTIONAL_LABEL,Structural Protein,9,manual
+intermediate_filament,FUNCTIONAL_LABEL,Structural Protein,9,manual
+keratin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+kinetochore,FUNCTIONAL_LABEL,Structural Protein,9,manual
+lamin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+laminin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+matrix,FUNCTIONAL_LABEL,Structural Protein,9,manual
+microfilament,FUNCTIONAL_LABEL,Structural Protein,9,manual
+microtubule,FUNCTIONAL_LABEL,Structural Protein,9,manual
+moesin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+mucin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+mucus,FUNCTIONAL_LABEL,Structural Protein,9,manual
+nebulin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+nidogen,FUNCTIONAL_LABEL,Structural Protein,9,manual
+nuclear_pore,FUNCTIONAL_LABEL,Structural Protein,9,manual
+nucleocapsid,FUNCTIONAL_LABEL,Structural Protein,9,manual
+nucleoporin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+occludin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+paxillin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+pectin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+perlecan,FUNCTIONAL_LABEL,Structural Protein,9,manual
+pili,FUNCTIONAL_LABEL,Structural Protein,9,manual
+pilin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+pilus,FUNCTIONAL_LABEL,Structural Protein,9,manual
+procollagen,FUNCTIONAL_LABEL,Structural Protein,9,manual
+proteoglycan,FUNCTIONAL_LABEL,Structural Protein,9,manual
+radixin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+scaffold,FUNCTIONAL_LABEL,Structural Protein,9,manual
+septin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+spectrin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+spindle,FUNCTIONAL_LABEL,Structural Protein,9,manual
+spore,FUNCTIONAL_LABEL,Structural Protein,9,manual
+spore_coat,FUNCTIONAL_LABEL,Structural Protein,9,manual
+structural,FUNCTIONAL_LABEL,Structural Protein,9,manual
+talin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+tight_junction,FUNCTIONAL_LABEL,Structural Protein,9,manual
+titin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+tropocollagen,FUNCTIONAL_LABEL,Structural Protein,9,manual
+tropomyosin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+troponin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+tubulin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+vimentin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+vinculin,FUNCTIONAL_LABEL,Structural Protein,9,manual
+abc_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+amino_acid_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+anion_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+anion_exchanger,FUNCTIONAL_LABEL,Transporter,10,manual
+antiporter,FUNCTIONAL_LABEL,Transporter,10,manual
+aquaporin,FUNCTIONAL_LABEL,Transporter,10,manual
+atp_binding_cassette,FUNCTIONAL_LABEL,Transporter,10,manual
+betaine_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+bicarbonate_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+bile_acid_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+calcium_atpase,FUNCTIONAL_LABEL,Transporter,10,manual
+calcium_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+carrier,FUNCTIONAL_LABEL,Transporter,10,manual
+cation_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+channel,FUNCTIONAL_LABEL,Transporter,10,manual
+chloride_bicarbonate_exchanger,FUNCTIONAL_LABEL,Transporter,10,manual
+chloride_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+choline_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+copper_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+dicarboxylate_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+dopamine_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+drug_efflux,FUNCTIONAL_LABEL,Transporter,10,manual
+efflux,FUNCTIONAL_LABEL,Transporter,10,manual
+exporter,FUNCTIONAL_LABEL,Transporter,10,manual
+f_atpase,FUNCTIONAL_LABEL,Transporter,10,manual
+fatty_acid_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+fructose_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+galactose_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+glucose_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+glutamate_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+glycerol_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+glycine_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+importer,FUNCTIONAL_LABEL,Transporter,10,manual
+ion_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+iron_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+lactose_permease,FUNCTIONAL_LABEL,Transporter,10,manual
+ligand_gated,FUNCTIONAL_LABEL,Transporter,10,manual
+magnesium_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+major_facilitator_superfamily,FUNCTIONAL_LABEL,Transporter,10,manual
+maltose_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+manganese_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+mannose_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+membrane_transport,FUNCTIONAL_LABEL,Transporter,10,manual
+mitochondrial_carrier,FUNCTIONAL_LABEL,Transporter,10,manual
+monocarboxylate_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+multidrug,FUNCTIONAL_LABEL,Transporter,10,manual
+multidrug_resistance,FUNCTIONAL_LABEL,Transporter,10,manual
+norepinephrine_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+nucleoside_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+nucleotide_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+organic_anion_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+organic_cation_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+p_type_atpase,FUNCTIONAL_LABEL,Transporter,10,manual
+peptide_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+permease,FUNCTIONAL_LABEL,Transporter,10,manual
+phosphate_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+porin,FUNCTIONAL_LABEL,Transporter,10,manual
+potassium_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+potassium_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+proline_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+proton_atpase,FUNCTIONAL_LABEL,Transporter,10,manual
+proton_pump,FUNCTIONAL_LABEL,Transporter,10,manual
+pump,FUNCTIONAL_LABEL,Transporter,10,manual
+serotonin_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+sodium_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+sodium_potassium_atpase,FUNCTIONAL_LABEL,Transporter,10,manual
+sodium_potassium_pump,FUNCTIONAL_LABEL,Transporter,10,manual
+sodium_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+solute_carrier,FUNCTIONAL_LABEL,Transporter,10,manual
+symporter,FUNCTIONAL_LABEL,Transporter,10,manual
+taurine_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+tricarboxylate_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+uncoupling_protein,FUNCTIONAL_LABEL,Transporter,10,manual
+urea_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+v_atpase,FUNCTIONAL_LABEL,Transporter,10,manual
+vitamin_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+voltage_dependent_anion_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+voltage_gated,FUNCTIONAL_LABEL,Transporter,10,manual
+water_channel,FUNCTIONAL_LABEL,Transporter,10,manual
+xenobiotic_transporter,FUNCTIONAL_LABEL,Transporter,10,manual
+zinc_transporter,FUNCTIONAL_LABEL,Transporter,10,manual

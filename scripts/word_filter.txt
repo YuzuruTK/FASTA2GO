@@ -1,0 +1,130 @@
+# Extra words to exclude from the word-frequency count.
+# One word per line; lines starting with '#' are comments.
+# Used with: --exclude-file scripts/word_filter.txt
+#
+# NOTE: the list below is already built into the script (GENERIC_WORDS).
+# This file is kept in sync for reference and for adding NEW exclusions
+# at the bottom without touching code.
+
+# Generic nouns
+function
+functions
+functional
+protein
+proteins
+gene
+genes
+product
+products
+factor
+factors
+component
+components
+element
+elements
+molecule
+molecules
+entity
+entities
+
+# Generic verbs / participation
+involved
+involving
+associated
+associated_with
+participates
+participating
+contributes
+contributing
+plays
+play
+role
+roles
+required
+necessary
+important
+critical
+essential
+acts
+acting
+serves
+serving
+mediates
+mediating
+facilitates
+facilitating
+helps
+helping
+supports
+supporting
+
+# Uncertainty / prediction qualifiers
+putative
+probable
+predicted
+possible
+potential
+hypothetical
+unknown
+uncharacterized
+conserved
+similar
+homolog
+homologous
+ortholog
+paralog
+
+# Structural / classification filler
+family
+member
+contains
+containing
+encoding
+encoded
+related
+like
+type
+class
+group
+part
+form
+forms
+forming
+formation
+formed
+complex
+subunit
+chain
+region
+domain
+domains
+motif
+motifs
+site
+sites
+residue
+residues
+
+# Greek letters / size / specificity qualifiers
+alpha
+beta
+gamma
+delta
+large
+small
+major
+minor
+high
+low
+long
+short
+specific
+general
+common
+unique
+different
+various
+multiple
+single
+
+# Add your own exclusions below:
