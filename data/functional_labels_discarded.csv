@@ -1,0 +1,373 @@
+word,reason
+ability,Grammatical/common English word with no functional signal
+absence,Grammatical/common English word with no functional signal
+abstract,Grammatical/common English word with no functional signal
+accelerate,Vague scientific prose verb; no class-discriminative signal
+accelerates,Vague scientific prose verb; no class-discriminative signal
+accuracy,Grammatical/common English word with no functional signal
+acid,"Generic biological-context word describing cells or organisms, not protein function"
+acids,"Generic biological-context word describing cells or organisms, not protein function"
+across,Grammatical/common English word with no functional signal
+active,Grammatical/common English word with no functional signal
+activities,Grammatical/common English word with no functional signal
+additional,Grammatical/common English word with no functional signal
+adjacent,Grammatical/common English word with no functional signal
+ala,Amino-acid name or code; does not indicate protein function
+alanine,Amino-acid name or code; does not indicate protein function
+although,Grammatical/common English word with no functional signal
+amino,"Generic biological-context word describing cells or organisms, not protein function"
+ammonia,"Generic biological-context word describing cells or organisms, not protein function"
+apical,Grammatical/common English word with no functional signal
+apoptosis,"Generic biological-context word describing cells or organisms, not protein function"
+appears,Grammatical/common English word with no functional signal
+arginine,Amino-acid name or code; does not indicate protein function
+around,Grammatical/common English word with no functional signal
+asn,Amino-acid name or code; does not indicate protein function
+asp,Amino-acid name or code; does not indicate protein function
+aspartate,Amino-acid name or code; does not indicate protein function
+assembly,Grammatical/common English word with no functional signal
+associates,Grammatical/common English word with no functional signal
+association,Grammatical/common English word with no functional signal
+autophagy,"Generic biological-context word describing cells or organisms, not protein function"
+avoid,Vague scientific prose verb; no class-discriminative signal
+b,Isolated letter
+back,Grammatical/common English word with no functional signal
+bacterial,Organism/taxon descriptor rather than protein function
+beginning,Grammatical/common English word with no functional signal
+believed,Grammatical/common English word with no functional signal
+biological,"Generic biological-context word describing cells or organisms, not protein function"
+biosynthesis,"Generic biological-context word describing cells or organisms, not protein function"
+blocking,Vague scientific prose verb; no class-discriminative signal
+blocks,Vague scientific prose verb; no class-discriminative signal
+blood,"Generic biological-context word describing cells or organisms, not protein function"
+brain,"Generic biological-context word describing cells or organisms, not protein function"
+bridge,Grammatical/common English word with no functional signal
+bridges,Grammatical/common English word with no functional signal
+c,Isolated letter
+canonical,Grammatical/common English word with no functional signal
+captures,Vague scientific prose verb; no class-discriminative signal
+carbon,"Generic biological-context word describing cells or organisms, not protein function"
+causes,Vague scientific prose verb; no class-discriminative signal
+causing,Vague scientific prose verb; no class-discriminative signal
+cells,"Generic biological-context word describing cells or organisms, not protein function"
+cellular,"Generic biological-context word describing cells or organisms, not protein function"
+center,Grammatical/common English word with no functional signal
+certain,Grammatical/common English word with no functional signal
+chloroplast,"Generic biological-context word describing cells or organisms, not protein function"
+cis,Grammatical/common English word with no functional signal
+close,Grammatical/common English word with no functional signal
+cognate,Amino-acid name or code; does not indicate protein function
+coli,"Generic biological-context word describing cells or organisms, not protein function"
+composed,Grammatical/common English word with no functional signal
+concentration,Experimental/contextual term from annotation prose
+concentrations,Experimental/contextual term from annotation prose
+conditions,Grammatical/common English word with no functional signal
+confers,Vague scientific prose verb; no class-discriminative signal
+connecting,Grammatical/common English word with no functional signal
+conserves,Vague scientific prose verb; no class-discriminative signal
+consist,Grammatical/common English word with no functional signal
+consists,Grammatical/common English word with no functional signal
+contact,Grammatical/common English word with no functional signal
+contacts,Grammatical/common English word with no functional signal
+contribute,Vague scientific prose verb; no class-discriminative signal
+control,Vague scientific prose verb; no class-discriminative signal
+controls,Vague scientific prose verb; no class-discriminative signal
+correctly,Grammatical/common English word with no functional signal
+corresponding,Grammatical/common English word with no functional signal
+coupled,Grammatical/common English word with no functional signal
+couples,Grammatical/common English word with no functional signal
+coupling,Grammatical/common English word with no functional signal
+cross,Grammatical/common English word with no functional signal
+crucial,Vague scientific prose verb; no class-discriminative signal
+cysteine,Amino-acid name or code; does not indicate protein function
+cytoplasm,"Generic biological-context word describing cells or organisms, not protein function"
+cytoplasmic,"Generic biological-context word describing cells or organisms, not protein function"
+cytosol,"Generic biological-context word describing cells or organisms, not protein function"
+cytosolic,"Generic biological-context word describing cells or organisms, not protein function"
+d,Isolated letter
+death,"Generic biological-context word describing cells or organisms, not protein function"
+dependent,Grammatical/common English word with no functional signal
+development,"Generic biological-context word describing cells or organisms, not protein function"
+differentiation,"Generic biological-context word describing cells or organisms, not protein function"
+directed,Vague scientific prose verb; no class-discriminative signal
+direction,Grammatical/common English word with no functional signal
+directs,Vague scientific prose verb; no class-discriminative signal
+displays,Vague scientific prose verb; no class-discriminative signal
+division,"Generic biological-context word describing cells or organisms, not protein function"
+downstream,Grammatical/common English word with no functional signal
+drive,Vague scientific prose verb; no class-discriminative signal
+drives,Vague scientific prose verb; no class-discriminative signal
+driving,Vague scientific prose verb; no class-discriminative signal
+dual,Grammatical/common English word with no functional signal
+due,Grammatical/common English word with no functional signal
+e,Isolated letter
+efficiency,Grammatical/common English word with no functional signal
+either,Grammatical/common English word with no functional signal
+embryonic,"Generic biological-context word describing cells or organisms, not protein function"
+end,Grammatical/common English word with no functional signal
+endoplasmic,"Generic biological-context word describing cells or organisms, not protein function"
+endosomal,"Generic biological-context word describing cells or organisms, not protein function"
+endothelial,"Generic biological-context word describing cells or organisms, not protein function"
+ends,Grammatical/common English word with no functional signal
+enhances,Vague scientific prose verb; no class-discriminative signal
+enhancing,Vague scientific prose verb; no class-discriminative signal
+envelope,"Generic biological-context word describing cells or organisms, not protein function"
+environment,Grammatical/common English word with no functional signal
+epithelial,"Generic biological-context word describing cells or organisms, not protein function"
+eukaryotic,"Generic biological-context word describing cells or organisms, not protein function"
+event,Grammatical/common English word with no functional signal
+events,Grammatical/common English word with no functional signal
+exhibits,Vague scientific prose verb; no class-discriminative signal
+expression,"Generic biological-context word describing cells or organisms, not protein function"
+extracellular,"Generic biological-context word describing cells or organisms, not protein function"
+f,Isolated letter
+facilitate,Vague scientific prose verb; no class-discriminative signal
+final,Grammatical/common English word with no functional signal
+finds,Vague scientific prose verb; no class-discriminative signal
+fmet,Amino-acid name or code; does not indicate protein function
+following,Grammatical/common English word with no functional signal
+formyl,Amino-acid name or code; does not indicate protein function
+formylmethionyl,Amino-acid name or code; does not indicate protein function
+four,Grammatical/common English word with no functional signal
+free,Grammatical/common English word with no functional signal
+fully,Grammatical/common English word with no functional signal
+g,Isolated letter
+generate,Vague scientific prose verb; no class-discriminative signal
+generates,Vague scientific prose verb; no class-discriminative signal
+generating,Vague scientific prose verb; no class-discriminative signal
+genetic,"Generic biological-context word describing cells or organisms, not protein function"
+gln,Amino-acid name or code; does not indicate protein function
+glu,Amino-acid name or code; does not indicate protein function
+glutamate,Amino-acid name or code; does not indicate protein function
+glutamine,Amino-acid name or code; does not indicate protein function
+glycine,Amino-acid name or code; does not indicate protein function
+golgi,"Generic biological-context word describing cells or organisms, not protein function"
+gram,"Generic biological-context word describing cells or organisms, not protein function"
+growth,"Generic biological-context word describing cells or organisms, not protein function"
+h,Isolated letter
+heat,"Generic biological-context word describing cells or organisms, not protein function"
+higher,Grammatical/common English word with no functional signal
+highly,Grammatical/common English word with no functional signal
+histidine,Amino-acid name or code; does not indicate protein function
+homeostasis,"Generic biological-context word describing cells or organisms, not protein function"
+host,"Generic biological-context word describing cells or organisms, not protein function"
+however,Grammatical/common English word with no functional signal
+human,Organism/taxon descriptor rather than protein function
+hydrogen,"Generic biological-context word describing cells or organisms, not protein function"
+implicated,Vague scientific prose verb; no class-discriminative signal
+increase,Vague scientific prose verb; no class-discriminative signal
+increases,Vague scientific prose verb; no class-discriminative signal
+increasing,Vague scientific prose verb; no class-discriminative signal
+indirectly,Grammatical/common English word with no functional signal
+initial,Grammatical/common English word with no functional signal
+initially,Grammatical/common English word with no functional signal
+inner,Grammatical/common English word with no functional signal
+integral,Grammatical/common English word with no functional signal
+interaction,Grammatical/common English word with no functional signal
+interactions,Grammatical/common English word with no functional signal
+interacts,Grammatical/common English word with no functional signal
+interface,Grammatical/common English word with no functional signal
+internal,Grammatical/common English word with no functional signal
+intracellular,"Generic biological-context word describing cells or organisms, not protein function"
+introduces,Vague scientific prose verb; no class-discriminative signal
+isoform,Grammatical/common English word with no functional signal
+isoleucine,Amino-acid name or code; does not indicate protein function
+k,Isolated letter
+l,Isolated letter
+lack,Grammatical/common English word with no functional signal
+last,Grammatical/common English word with no functional signal
+leads,Vague scientific prose verb; no class-discriminative signal
+less,Grammatical/common English word with no functional signal
+level,Grammatical/common English word with no functional signal
+levels,Grammatical/common English word with no functional signal
+light,"Generic biological-context word describing cells or organisms, not protein function"
+likely,Grammatical/common English word with no functional signal
+linked,Grammatical/common English word with no functional signal
+linking,Grammatical/common English word with no functional signal
+lipid,"Generic biological-context word describing cells or organisms, not protein function"
+lipids,"Generic biological-context word describing cells or organisms, not protein function"
+localization,Grammatical/common English word with no functional signal
+located,Grammatical/common English word with no functional signal
+lower,Grammatical/common English word with no functional signal
+lys,Amino-acid name or code; does not indicate protein function
+lysine,Amino-acid name or code; does not indicate protein function
+m,Isolated letter
+macrophages,"Generic biological-context word describing cells or organisms, not protein function"
+main,Grammatical/common English word with no functional signal
+maintain,Vague scientific prose verb; no class-discriminative signal
+maintaining,Vague scientific prose verb; no class-discriminative signal
+maintains,Vague scientific prose verb; no class-discriminative signal
+makes,Grammatical/common English word with no functional signal
+matrix,"Generic biological-context word describing cells or organisms, not protein function"
+maturation,Grammatical/common English word with no functional signal
+mature,Grammatical/common English word with no functional signal
+mediate,Grammatical/common English word with no functional signal
+mediated,Grammatical/common English word with no functional signal
+metabolism,"Generic biological-context word describing cells or organisms, not protein function"
+methionine,Amino-acid name or code; does not indicate protein function
+mitochondria,"Generic biological-context word describing cells or organisms, not protein function"
+mitochondrial,"Generic biological-context word describing cells or organisms, not protein function"
+morphogenesis,"Generic biological-context word describing cells or organisms, not protein function"
+muscle,"Generic biological-context word describing cells or organisms, not protein function"
+n,Isolated letter
+nano,Experimental/contextual term from annotation prose
+negatively,Grammatical/common English word with no functional signal
+nervous,"Generic biological-context word describing cells or organisms, not protein function"
+neuronal,"Generic biological-context word describing cells or organisms, not protein function"
+neurons,"Generic biological-context word describing cells or organisms, not protein function"
+new,Grammatical/common English word with no functional signal
+nitrogen,"Generic biological-context word describing cells or organisms, not protein function"
+nm,Experimental/contextual term from annotation prose
+nuclear,"Generic biological-context word describing cells or organisms, not protein function"
+nucleus,"Generic biological-context word describing cells or organisms, not protein function"
+o,Isolated letter
+occur,Grammatical/common English word with no functional signal
+occurring,Vague scientific prose verb; no class-discriminative signal
+occurs,Grammatical/common English word with no functional signal
+onto,Grammatical/common English word with no functional signal
+open,Grammatical/common English word with no functional signal
+optimized,Grammatical/common English word with no functional signal
+order,Grammatical/common English word with no functional signal
+organism,"Generic biological-context word describing cells or organisms, not protein function"
+organisms,"Generic biological-context word describing cells or organisms, not protein function"
+organization,Grammatical/common English word with no functional signal
+outer,Grammatical/common English word with no functional signal
+oxygen,"Generic biological-context word describing cells or organisms, not protein function"
+p,Isolated letter
+pathway,"Generic biological-context word describing cells or organisms, not protein function"
+pathways,"Generic biological-context word describing cells or organisms, not protein function"
+peptide,"Generic biological-context word describing cells or organisms, not protein function"
+peptides,"Generic biological-context word describing cells or organisms, not protein function"
+peripheral,Grammatical/common English word with no functional signal
+periplasmic,"Generic biological-context word describing cells or organisms, not protein function"
+ph,Experimental/contextual term from annotation prose
+phase,Grammatical/common English word with no functional signal
+photosynthetic,"Generic biological-context word describing cells or organisms, not protein function"
+physical,Grammatical/common English word with no functional signal
+physiological,"Generic biological-context word describing cells or organisms, not protein function"
+place,Grammatical/common English word with no functional signal
+plant,Organism/taxon descriptor rather than protein function
+plasma,"Generic biological-context word describing cells or organisms, not protein function"
+polypeptide,"Generic biological-context word describing cells or organisms, not protein function"
+positions,Grammatical/common English word with no functional signal
+positively,Grammatical/common English word with no functional signal
+possesses,Vague scientific prose verb; no class-discriminative signal
+potent,Grammatical/common English word with no functional signal
+precursor,Grammatical/common English word with no functional signal
+preference,Grammatical/common English word with no functional signal
+preferentially,Grammatical/common English word with no functional signal
+premature,Grammatical/common English word with no functional signal
+presence,Grammatical/common English word with no functional signal
+prevents,Vague scientific prose verb; no class-discriminative signal
+prior,Grammatical/common English word with no functional signal
+pro,Amino-acid name or code; does not indicate protein function
+processing,Grammatical/common English word with no functional signal
+produce,Vague scientific prose verb; no class-discriminative signal
+produced,Vague scientific prose verb; no class-discriminative signal
+produces,Vague scientific prose verb; no class-discriminative signal
+producing,Vague scientific prose verb; no class-discriminative signal
+proliferation,"Generic biological-context word describing cells or organisms, not protein function"
+proline,Amino-acid name or code; does not indicate protein function
+promote,Vague scientific prose verb; no class-discriminative signal
+promotes,Vague scientific prose verb; no class-discriminative signal
+promoting,Vague scientific prose verb; no class-discriminative signal
+properties,Grammatical/common English word with no functional signal
+provided,Grammatical/common English word with no functional signal
+psi,Experimental/contextual term from annotation prose
+q,Isolated letter
+quality,Grammatical/common English word with no functional signal
+r,Isolated letter
+range,Grammatical/common English word with no functional signal
+rapid,Grammatical/common English word with no functional signal
+recognition,Grammatical/common English word with no functional signal
+recruited,Grammatical/common English word with no functional signal
+recruitment,Grammatical/common English word with no functional signal
+recruits,Grammatical/common English word with no functional signal
+release,Vague scientific prose verb; no class-discriminative signal
+releases,Vague scientific prose verb; no class-discriminative signal
+removal,Vague scientific prose verb; no class-discriminative signal
+removes,Vague scientific prose verb; no class-discriminative signal
+requires,Vague scientific prose verb; no class-discriminative signal
+resolves,Vague scientific prose verb; no class-discriminative signal
+result,Vague scientific prose verb; no class-discriminative signal
+results,Vague scientific prose verb; no class-discriminative signal
+reticulum,"Generic biological-context word describing cells or organisms, not protein function"
+s,Isolated letter
+scan,Experimental/contextual term from annotation prose
+secondary,Grammatical/common English word with no functional signal
+seems,Grammatical/common English word with no functional signal
+seen,Grammatical/common English word with no functional signal
+selective,Grammatical/common English word with no functional signal
+ser,Amino-acid name or code; does not indicate protein function
+serine,Amino-acid name or code; does not indicate protein function
+seryl,Amino-acid name or code; does not indicate protein function
+shock,"Generic biological-context word describing cells or organisms, not protein function"
+shows,Grammatical/common English word with no functional signal
+since,Grammatical/common English word with no functional signal
+space,Grammatical/common English word with no functional signal
+species,"Generic biological-context word describing cells or organisms, not protein function"
+specificity,Grammatical/common English word with no functional signal
+spontaneous,Experimental/contextual term from annotation prose
+spontaneously,Experimental/contextual term from annotation prose
+stabilize,Vague scientific prose verb; no class-discriminative signal
+stabilizes,Vague scientific prose verb; no class-discriminative signal
+stabilizing,Vague scientific prose verb; no class-discriminative signal
+stage,Grammatical/common English word with no functional signal
+stages,Grammatical/common English word with no functional signal
+state,Grammatical/common English word with no functional signal
+steps,Grammatical/common English word with no functional signal
+stress,"Generic biological-context word describing cells or organisms, not protein function"
+strongly,Grammatical/common English word with no functional signal
+subsequently,Grammatical/common English word with no functional signal
+subset,Grammatical/common English word with no functional signal
+sugar,"Generic biological-context word describing cells or organisms, not protein function"
+sulfur,"Generic biological-context word describing cells or organisms, not protein function"
+surface,Grammatical/common English word with no functional signal
+survival,"Generic biological-context word describing cells or organisms, not protein function"
+synaptic,"Generic biological-context word describing cells or organisms, not protein function"
+synthesis,"Generic biological-context word describing cells or organisms, not protein function"
+t,Isolated letter
+takes,Grammatical/common English word with no functional signal
+target,Grammatical/common English word with no functional signal
+targeted,Vague scientific prose verb; no class-discriminative signal
+targets,Vague scientific prose verb; no class-discriminative signal
+termed,Grammatical/common English word with no functional signal
+termini,Grammatical/common English word with no functional signal
+terminus,Grammatical/common English word with no functional signal
+therefore,Grammatical/common English word with no functional signal
+thought,Grammatical/common English word with no functional signal
+thr,Amino-acid name or code; does not indicate protein function
+three,Grammatical/common English word with no functional signal
+threonine,Amino-acid name or code; does not indicate protein function
+tissue,"Generic biological-context word describing cells or organisms, not protein function"
+tissues,"Generic biological-context word describing cells or organisms, not protein function"
+toward,Grammatical/common English word with no functional signal
+triggers,Vague scientific prose verb; no class-discriminative signal
+turn,Grammatical/common English word with no functional signal
+types,Grammatical/common English word with no functional signal
+tyr,Amino-acid name or code; does not indicate protein function
+tyrosine,Amino-acid name or code; does not indicate protein function
+u,Isolated letter
+upstream,Grammatical/common English word with no functional signal
+use,Grammatical/common English word with no functional signal
+uses,Grammatical/common English word with no functional signal
+v,Isolated letter
+valine,Amino-acid name or code; does not indicate protein function
+variety,Grammatical/common English word with no functional signal
+vesicle,"Generic biological-context word describing cells or organisms, not protein function"
+vesicles,"Generic biological-context word describing cells or organisms, not protein function"
+viral,Organism/taxon descriptor rather than protein function
+virion,"Generic biological-context word describing cells or organisms, not protein function"
+virus,Organism/taxon descriptor rather than protein function
+vitro,Experimental/contextual term from annotation prose
+vivo,Experimental/contextual term from annotation prose
+wall,"Generic biological-context word describing cells or organisms, not protein function"
+water,"Generic biological-context word describing cells or organisms, not protein function"
+weak,Grammatical/common English word with no functional signal
+whereas,Grammatical/common English word with no functional signal
+wide,Grammatical/common English word with no functional signal
+without,Grammatical/common English word with no functional signal
+x,Isolated letter
+yield,Vague scientific prose verb; no class-discriminative signal
+yielding,Vague scientific prose verb; no class-discriminative signal
+z,Isolated letter

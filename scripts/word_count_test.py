@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Word-frequency analysis and category coverage for the ``function`` column.
 
-Three modes of operation:
+Four modes of operation:
 
 1. Word frequency (default): sample rows from the ``analysis_data`` view,
    tokenize the ``function`` texts, and report which words appear most
@@ -11,6 +11,10 @@ Three modes of operation:
 3. Coverage check (``--coverage-file FILE``): given a category dictionary
    file (one word per line), report how many rows match at least one
    dictionary word and how many rows are left unmatched.
+4. Export top words (``--export-top N``): full scan of all rows with a
+   non-null ``function``, writing the top-N most frequent words to a CSV
+   with columns ``rank,word,proteins,total``. Deterministic: ties are
+   broken alphabetically by word.
 
 Usage:
     uv run python scripts/word_count_test.py [--limit 1000] [--top 30]
@@ -18,6 +22,9 @@ Usage:
         --export-out kinase_proteins.csv
     uv run python scripts/word_count_test.py --coverage-file category_words.txt \
         --export-unmatched unmatched.csv
+    uv run python scripts/word_count_test.py \
+        --exclude-file scripts/word_filter.txt \
+        --export-top 1000 --export-top-out data/word_frequencies.csv
 """
 
 import argparse
@@ -166,6 +173,71 @@ def run_frequency_mode(conn, args) -> None:
         print(f"  {rank:>4}  {word:<20} {doc_count:>10,} {total_counter[word]:>10,}")
 
 
+def compute_word_counters(rows: list[tuple], no_stopwords: bool,
+                          exclude_file: str | None) -> tuple[Counter, Counter]:
+    """Tokenize rows and return (total_counter, doc_counter).
+
+    Applies the stopword/noise/generic filters plus any extra exclusion
+    file, and drops pure-numeric tokens, unless ``no_stopwords`` is set.
+    """
+    total_counter: Counter[str] = Counter()
+    doc_counter: Counter[str] = Counter()
+
+    for _, _, function_text in rows:
+        words = tokenize(function_text)
+        total_counter.update(words)
+        # Count each word at most once per protein (document frequency).
+        doc_counter.update(set(words))
+
+    if not no_stopwords:
+        excluded = STOPWORDS | NOISE_WORDS | GENERIC_WORDS
+        if exclude_file:
+            excluded |= load_word_file(exclude_file)
+        # Also drop pure-numeric tokens (GO evidence codes like 0000250).
+        total_counter = Counter(
+            {w: c for w, c in total_counter.items() if w not in excluded and not w.isdigit()}
+        )
+        doc_counter = Counter(
+            {w: c for w, c in doc_counter.items() if w not in excluded and not w.isdigit()}
+        )
+
+    return total_counter, doc_counter
+
+
+def run_export_top_mode(conn, args) -> None:
+    """Export the top-N most frequent words to a deterministic CSV.
+
+    Performs a FULL scan of all rows with a non-null function (ignores
+    --limit) so results are reproducible. Words are ranked by document
+    frequency (number of distinct proteins containing them); ties are
+    broken alphabetically by word.
+    """
+    rows = fetch_function_rows(conn, limit=None)
+    total_counter, doc_counter = compute_word_counters(
+        rows, args.no_stopwords, args.exclude_file
+    )
+
+    ranked = sorted(doc_counter.items(), key=lambda item: (-item[1], item[0]))
+    top = ranked[:args.export_top]
+
+    out_path = Path(args.export_top_out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["rank", "word", "proteins", "total"])
+        for rank, (word, doc_count) in enumerate(top, 1):
+            writer.writerow([rank, word, doc_count, total_counter[word]])
+
+    print("=" * 60)
+    print("  Export Top Words — 'function' column")
+    print("=" * 60)
+    print(f"  Rows scanned        : {len(rows):,}")
+    print(f"  Unique words        : {len(doc_counter):,}")
+    print(f"  Words exported      : {len(top):,}")
+    print(f"  Output file         : {out_path}")
+    print("=" * 60)
+
+
 def run_export_mode(conn, args) -> None:
     """Export all analysis_data rows whose function contains a word."""
     word = args.export_word.lower()
@@ -303,6 +375,21 @@ def main() -> None:
         default=None,
         help="Export rows matching no dictionary word to this CSV path.",
     )
+    parser.add_argument(
+        "--export-top",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Full-scan the 'function' column and export the top-N most "
+             "frequent words to --export-top-out as rank,word,proteins,total.",
+    )
+    parser.add_argument(
+        "--export-top-out",
+        type=str,
+        default="data/word_frequencies.csv",
+        help="Output CSV path for --export-top "
+             "(default: data/word_frequencies.csv).",
+    )
     args = parser.parse_args()
 
     db_path = Path(args.db)
@@ -312,7 +399,9 @@ def main() -> None:
 
     conn = connect(db_path)
     try:
-        if args.coverage_file:
+        if args.export_top:
+            run_export_top_mode(conn, args)
+        elif args.coverage_file:
             run_coverage_mode(conn, args)
         elif args.export_word:
             run_export_mode(conn, args)
