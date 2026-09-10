@@ -96,6 +96,14 @@ def build_staging_table(
     sources_sql = ", ".join(_sql_quote(p) for p in files)
     # DuckDB reads listed files in order, so earlier sources (bulk snapshot)
     # take precedence over later ones (legacy cache) on duplicate accessions.
+    # The rank is folded into each column with arg_min: per accession, every
+    # value comes from the row with the smallest source rank (deterministic,
+    # unlike DISTINCT ON with a non-matching ORDER BY).
+    value_cols = ", ".join(
+        f'arg_min("{name}", _src) AS "{name}"'
+        for name in TSV_COLUMN_TYPES
+        if name != "Entry"
+    )
     ranked: list[str] = []
     for rank, path in enumerate(files):
         ranked.append(
@@ -104,10 +112,9 @@ def build_staging_table(
         )
     conn.execute(
         f"CREATE OR REPLACE TEMP TABLE {staging_table} AS "
-        f"SELECT * EXCLUDE (_src) FROM ("
-        f'SELECT DISTINCT ON ("Entry") {cols_sql}, _src '
-        f"FROM ({' UNION ALL '.join(ranked)})"
-        f") ORDER BY _src"
+        f'SELECT "Entry", {value_cols} '
+        f"FROM ({' UNION ALL '.join(ranked)}) "
+        f'GROUP BY "Entry"'
     )
     return conn.execute(f"SELECT count(*) FROM {staging_table}").fetchone()[0]
 
