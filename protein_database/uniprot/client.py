@@ -29,6 +29,9 @@ UNIPROT_FIELDS = ",".join(
     ]
 )
 
+#: Bulk streaming endpoint: delivers full query result sets in one response.
+STREAM_URL = "https://rest.uniprot.org/uniprotkb/stream"
+
 #: HTTP statuses treated as transient (retryable with backoff).
 RETRYABLE_STATUSES = frozenset({429, 500, 502, 503, 504})
 
@@ -133,6 +136,92 @@ class UniProtClient:
             # Non-retryable (e.g. 400 invalid fields)
             raise requests.HTTPError(
                 f"Non-retryable HTTP {resp.status_code}: {resp.text[:300]}"
+            )
+
+        raise requests.RequestException(
+            f"Exhausted {self.max_retries} retries. Last error: {last_error}"
+        )
+
+    def fetch_stream(
+        self,
+        query: str,
+        dest: "Path | str",
+        chunk_size: int = 1 << 20,
+    ) -> "Path":
+        """Download a bulk TSV snapshot via the UniProt streaming endpoint.
+
+        The full result set for ``query`` is streamed to ``dest`` in chunks.
+        A ``.part`` suffix is used while downloading, so an interrupted run
+        can never be mistaken for a complete snapshot; callers should rename
+        the returned path to its final name after verifying the download.
+
+        Args:
+            query: UniProtKB query (e.g. ``reviewed:true``).
+            dest: Destination path for the (possibly gzipped) stream.
+            chunk_size: Bytes per streamed chunk.
+
+        Returns:
+            The destination path.
+
+        Raises:
+            requests.RequestException: On transient errors after retries are
+                exhausted, or non-retryable HTTP statuses.
+        """
+        from pathlib import Path as _Path
+
+        dest_path = _Path(dest)
+        last_error: Exception | None = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                resp = self.session.get(
+                    STREAM_URL,
+                    params={
+                        "query": query,
+                        "format": "tsv",
+                        "fields": UNIPROT_FIELDS,
+                        "compressed": "true",
+                    },
+                    stream=True,
+                    timeout=120,
+                )
+            except requests.RequestException as exc:
+                last_error = exc
+                logger.warning(
+                    "Stream error (attempt %d/%d): %s",
+                    attempt + 1,
+                    self.max_retries + 1,
+                    exc,
+                )
+                time.sleep(self._backoff_delay(attempt, None))
+                continue
+
+            if resp.status_code == 200:
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(dest_path, "wb") as fh:
+                    for chunk in resp.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            fh.write(chunk)
+                return dest_path
+
+            if resp.status_code in RETRYABLE_STATUSES:
+                retry_after = resp.get_header("Retry-After")
+                delay = self._backoff_delay(attempt, retry_after)
+                logger.warning(
+                    "Retryable stream status %d (attempt %d/%d): retrying in %.1fs",
+                    resp.status_code,
+                    attempt + 1,
+                    self.max_retries + 1,
+                    delay,
+                )
+                time.sleep(delay)
+                body = getattr(resp, "text", "") or ""
+                last_error = requests.HTTPError(
+                    f"HTTP {resp.status_code}: {body[:200]}"
+                )
+                continue
+
+            raise requests.HTTPError(
+                f"Non-retryable stream HTTP {resp.status_code}"
             )
 
         raise requests.RequestException(

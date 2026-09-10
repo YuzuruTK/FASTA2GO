@@ -12,6 +12,8 @@ from pathlib import Path
 import duckdb
 from tqdm import tqdm
 
+from protein_database.database.staging import remove_staged_csv, stage_rows_to_csv
+
 from protein_database.database.backfill import backfill_features
 from protein_database.database.connection import bulk_upsert
 from protein_database.uniprot.accession import group_accessions_by_local_rows
@@ -81,6 +83,7 @@ class RunSummary:
     cached_batches: int = 0
     function_coverage_pct: float = 0.0
     already_completed_skipped: int = 0
+    elapsed_seconds: float = 0.0
 
 
 def _utcnow_str() -> str:
@@ -188,12 +191,39 @@ def upsert_annotations(
     return len(write_rows)
 
 
+def _stage_accession_set(
+    conn: duckdb.DuckDBPyConnection,
+    accessions: list[str],
+) -> Path:
+    """Stage an accession list to a CSV and load it into a temp table.
+
+    Args:
+        conn: DuckDB connection.
+        accessions: List of UniProt accessions.
+
+    Returns:
+        Path of the staged CSV file (for lifecycle management).
+    """
+    csv_path = stage_rows_to_csv(None, "queue_status", ["accession"], [[acc] for acc in accessions])
+    escaped_path = str(csv_path).replace("'", "''")
+    conn.execute(
+        "CREATE OR REPLACE TEMP TABLE queue_status_staging AS "
+        "SELECT accession FROM "
+        f"read_csv('{escaped_path}', header=true, columns={{'accession': 'VARCHAR'}})"
+    )
+    return csv_path
+
+
 def update_queue_status(
     conn: duckdb.DuckDBPyConnection,
     accessions: list[str],
     status: str,
 ) -> None:
     """Set the status of a set of accessions in the queue.
+
+    Accessions are staged via CSV and applied with a single set-based
+    ``UPDATE ... FROM`` instead of row-by-row ``executemany``. The staging
+    CSV is deleted after a successful update and kept on failure.
 
     Args:
         conn: DuckDB connection.
@@ -204,25 +234,46 @@ def update_queue_status(
         return
     now = _utcnow_str()
     completed_at = now if status in (STATUS_COMPLETED, STATUS_MISSING_FUNCTION, STATUS_NOT_FOUND) else None
-    rows = [[status, now, completed_at, acc] for acc in accessions]
-    conn.executemany(
-        f"UPDATE uniprot_accession_queue SET status = ?, last_attempt = ?, "
-        f"completed_at = ? WHERE accession = ?",
-        rows,
-    )
+    csv_path = _stage_accession_set(conn, accessions)
+    try:
+        conn.execute(
+            "UPDATE uniprot_accession_queue q "
+            "SET status = ?, last_attempt = ?, completed_at = ? "
+            "FROM queue_status_staging s WHERE q.accession = s.accession",
+            [status, now, completed_at],
+        )
+    except Exception:
+        # Keep the staged CSV for debugging; the caller handles the error.
+        raise
+    finally:
+        conn.execute("DROP TABLE IF EXISTS queue_status_staging")
+    remove_staged_csv(csv_path)
 
 
 def increment_retry(conn: duckdb.DuckDBPyConnection, accessions: list[str]) -> None:
-    """Increment retry_count for accessions (used for failed batches)."""
+    """Increment retry_count for accessions (used for failed batches).
+
+    Accessions are staged via CSV and applied with a single set-based
+    ``UPDATE ... FROM`` instead of row-by-row ``executemany``. The staging
+    CSV is deleted after a successful update and kept on failure.
+    """
     if not accessions:
         return
     now = _utcnow_str()
-    rows = [[now, acc] for acc in accessions]
-    conn.executemany(
-        "UPDATE uniprot_accession_queue SET retry_count = retry_count + 1, "
-        "last_attempt = ? WHERE accession = ?",
-        rows,
-    )
+    csv_path = _stage_accession_set(conn, accessions)
+    try:
+        conn.execute(
+            "UPDATE uniprot_accession_queue q "
+            "SET retry_count = retry_count + 1, last_attempt = ? "
+            "FROM queue_status_staging s WHERE q.accession = s.accession",
+            [now],
+        )
+    except Exception:
+        # Keep the staged CSV for debugging; the caller handles the error.
+        raise
+    finally:
+        conn.execute("DROP TABLE IF EXISTS queue_status_staging")
+    remove_staged_csv(csv_path)
 
 
 def get_pending_accessions(conn: duckdb.DuckDBPyConnection, limit: int | None) -> list[str]:

@@ -87,17 +87,24 @@ uv run python scripts/query_example.py --top 10
 ### Enrich with UniProt annotations
 
 ```bash
-# Enrich all proteins (batched, resumable)
+# Enrich all proteins from the bulk snapshot (default: one streaming
+# download, then a native DuckDB import -- no per-accession requests)
 uv run python scripts/annotate_proteins.py --db proteins.duckdb
 
-# Custom batch size (max 100) and cache directory
-uv run python scripts/annotate_proteins.py --db proteins.duckdb --batch-size 100 --cache-dir cache/uniprot
+# Offline replay of the legacy per-batch *.tsv cache (no network at all)
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --source cache
 
-# Use 8 concurrent fetch threads for faster retrieval
-uv run python scripts/annotate_proteins.py --db proteins.duckdb --workers 8
+# Force a fresh snapshot download even when one is cached
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --source bulk --refresh-snapshot
 
-# Process only a limited number of accessions (for testing)
-uv run python scripts/annotate_proteins.py --db proteins.duckdb --limit 5000
+# Legacy batched REST retrieval with resume (for non-SwissProt datasets)
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api
+
+# Custom batch size (max 100), cache directory, fetch threads (api only)
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api --batch-size 100 --cache-dir cache/uniprot --workers 8
+
+# Process only a limited number of accessions (for testing, api only)
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api --limit 5000
 ```
 
 ### Run tests

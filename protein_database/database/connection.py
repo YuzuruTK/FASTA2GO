@@ -6,6 +6,11 @@ from typing import Any
 import duckdb
 
 from protein_database.database.models import ANALYSIS_VIEW_SQL, SCHEMA_SQL, TABLE_NAMES
+from protein_database.database.staging import (
+    remove_staged_csv,
+    stage_rows_to_csv,
+    table_column_types,
+)
 
 
 def connect(db_path: str | Path) -> duckdb.DuckDBPyConnection:
@@ -88,29 +93,48 @@ def bulk_insert(
     table: str,
     columns: list[str],
     rows: list[list],
+    cache_dir: str | Path | None = None,
 ) -> None:
-    """Bulk-insert rows into a table using DuckDB executemany.
+    """Bulk-insert rows into a table by staging a CSV and importing it natively.
 
-    All rows are inserted in a single prepared-statement batch, avoiding
-    row-by-row database writes.
+    Instead of ``executemany`` (row-by-row, slow in DuckDB), the rows are
+    written to a CSV file in the cache directory and loaded with DuckDB's
+    native ``read_csv`` reader in a single statement. ``None`` values become
+    SQL NULL.
+
+    The staging CSV is deleted after a successful import; on failure it is
+    left in the cache directory for debugging.
 
     Args:
         conn: DuckDB connection.
         table: Target table name.
         columns: Column names to insert into (same order as rows).
         rows: List of value rows.
+        cache_dir: Directory used to stage the CSV files. Defaults to
+            ``cache/csv_bulk`` relative to the working directory.
 
     Raises:
         ValueError: If rows is empty.
     """
     if not rows:
         raise ValueError("No rows to insert.")
-    placeholder = ", ".join(["?"] * len(columns))
-    col_str = ", ".join(columns)
-    conn.executemany(
-        f"INSERT INTO {table} ({col_str}) VALUES ({placeholder})",
-        rows,
+    csv_path = stage_rows_to_csv(cache_dir, table, columns, rows)
+    col_list = ", ".join(columns)
+    column_types = table_column_types(conn, table, columns)
+    types_spec = ", ".join(
+        f"'{name}': '{dtype}'" for name, dtype in column_types.items()
     )
+    escaped_path = str(csv_path).replace("'", "''")
+    try:
+        conn.execute(
+            f"INSERT INTO {table} ({col_list}) "
+            f"SELECT {col_list} FROM read_csv('{escaped_path}', header=true, "
+            f"columns={{{types_spec}}})"
+        )
+    except Exception:
+        # Keep the staged CSV for debugging; the caller handles the error.
+        raise
+    remove_staged_csv(csv_path)
 
 
 def bulk_upsert(
@@ -120,8 +144,17 @@ def bulk_upsert(
     rows: list[list],
     on_conflict_columns: list[str],
     update_columns: list[str],
+    cache_dir: str | Path | None = None,
 ) -> None:
-    """Upsert rows into a table using DuckDB ON CONFLICT.
+    """Upsert rows into a table via CSV staging and a native DuckDB import.
+
+    Instead of ``executemany`` (row-by-row, slow in DuckDB), the rows are
+    written to a CSV file in the cache directory and loaded with DuckDB's
+    native ``read_csv`` reader in a single ``INSERT ... SELECT ... ON
+    CONFLICT`` statement. ``None`` values become SQL NULL.
+
+    The staging CSV is deleted after a successful import; on failure it is
+    left in the cache directory for debugging.
 
     Args:
         conn: DuckDB connection.
@@ -130,18 +163,31 @@ def bulk_upsert(
         rows: List of value rows.
         on_conflict_columns: Columns that form the conflict target (PK).
         update_columns: Columns to update on conflict (excluding PK).
+        cache_dir: Directory used to stage the CSV files. Defaults to
+            ``cache/csv_bulk`` relative to the working directory.
 
     Raises:
         ValueError: If rows is empty.
     """
     if not rows:
         raise ValueError("No rows to upsert.")
-    placeholder = ", ".join(["?"] * len(columns))
-    col_str = ", ".join(columns)
+    csv_path = stage_rows_to_csv(cache_dir, table, columns, rows)
+    col_list = ", ".join(columns)
+    column_types = table_column_types(conn, table, columns)
+    types_spec = ", ".join(
+        f"'{name}': '{dtype}'" for name, dtype in column_types.items()
+    )
+    escaped_path = str(csv_path).replace("'", "''")
     conflict_str = ", ".join(on_conflict_columns)
     update_str = ", ".join(f"{c} = excluded.{c}" for c in update_columns)
-    conn.executemany(
-        f"INSERT INTO {table} ({col_str}) VALUES ({placeholder}) "
-        f"ON CONFLICT ({conflict_str}) DO UPDATE SET {update_str}",
-        rows,
-    )
+    try:
+        conn.execute(
+            f"INSERT INTO {table} ({col_list}) "
+            f"SELECT {col_list} FROM read_csv('{escaped_path}', header=true, "
+            f"columns={{{types_spec}}}) "
+            f"ON CONFLICT ({conflict_str}) DO UPDATE SET {update_str}"
+        )
+    except Exception:
+        # Keep the staged CSV for debugging; the caller handles the error.
+        raise
+    remove_staged_csv(csv_path)
