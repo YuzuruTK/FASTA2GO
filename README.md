@@ -20,7 +20,7 @@ This project creates a dataset of protein sequence features that can be used for
 - **Chemical classification** — hydrophobic, polar, charged, sulfur, and aromatic residue percentages
 - **Sequence complexity** — Shannon entropy, amino acid diversity, low-complexity region detection
 - **DuckDB storage** — native, columnar, analytics-optimized
-- **Bulk insert pipeline** — fast `executemany` batch loading
+- **Bulk insert pipeline** — CSV-staged native DuckDB import (fast `read_csv` batch loading)
 - **UniProt annotation enrichment** — bulk-retrieves Function, protein/gene names, subcellular location, organism, keywords, and more from the UniProtKB REST API, with resumable batches, raw-response caching, and retry/backoff
 - **CLI with progress bar** — shows percentage, ETA, and processing rate
 

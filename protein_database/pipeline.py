@@ -1,6 +1,8 @@
 """Pipeline orchestrator: FASTA parse -> feature extraction -> DuckDB storage."""
 
+import csv
 from pathlib import Path
+from uuid import uuid4
 
 import duckdb
 from tqdm import tqdm
@@ -22,6 +24,7 @@ def process_fasta_file(
     batch_size: int = 1000,
     limit: int | None = None,
     overwrite: bool = False,
+    csv_cache_dir: str | Path = "cache/csv_bulk",
 ) -> dict:
     """Process a FASTA file and populate a DuckDB database with features.
 
@@ -29,8 +32,9 @@ def process_fasta_file(
     1. Opens the FASTA file and counts the total number of entries.
     2. Parses each protein record.
     3. Computes sequence features and amino acid composition.
-    4. Inserts everything into DuckDB in batches via executemany, skipping
-       records that already exist in the database (idempotent).
+    4. Inserts everything into DuckDB in batches by staging CSVs in the
+       cache directory and loading them with DuckDB's native CSV import,
+       skipping records that already exist in the database (idempotent).
     5. Returns a summary dict with processing statistics.
 
     Args:
@@ -39,6 +43,8 @@ def process_fasta_file(
         batch_size: Number of records to batch-insert to the database.
         limit: Optional maximum number of records to process (for testing).
         overwrite: If True, drop and recreate the database before processing.
+        csv_cache_dir: Directory used to stage batch CSVs before the native
+            DuckDB import. Files are removed after a successful import.
 
     Returns:
         Dict with keys: 'processed', 'skipped', 'total_entries',
@@ -66,6 +72,9 @@ def process_fasta_file(
         print("Overwrite mode: dropped existing database tables.")
 
     init_database(conn)
+
+    cache_dir = Path(csv_cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
 
     processed = 0
     skipped = 0
@@ -105,7 +114,9 @@ def process_fasta_file(
             processed += 1
 
             if len(batch_proteins) >= batch_size:
-                _flush_batches(conn, batch_proteins, batch_features, batch_compositions)
+                _flush_batches(
+                    conn, batch_proteins, batch_features, batch_compositions, cache_dir
+                )
                 batch_proteins = []
                 batch_features = []
                 batch_compositions = []
@@ -116,7 +127,7 @@ def process_fasta_file(
 
     # Flush any remaining batch
     if batch_proteins:
-        _flush_batches(conn, batch_proteins, batch_features, batch_compositions)
+        _flush_batches(conn, batch_proteins, batch_features, batch_compositions, cache_dir)
 
     conn.close()
     elapsed = time.time() - start_time
@@ -326,28 +337,109 @@ def _composition_row(composition: CompositionModel) -> list:
     ]
 
 
+#: Default directory used to stage batch CSVs before the native DuckDB import.
+_CSV_CACHE_DIR = Path("cache/csv_bulk")
+
+
+def _table_column_types(
+    conn: duckdb.DuckDBPyConnection,
+    table: str,
+    columns: list[str],
+) -> dict[str, str]:
+    """Return the DuckDB type of each requested column in the target table.
+
+    Types are read from ``information_schema.columns`` so the CSV import stays
+    correct even if the schema evolves.
+
+    Args:
+        conn: DuckDB connection.
+        table: Target table name.
+        columns: Column names to look up.
+
+    Returns:
+        Mapping of column name -> DuckDB type name, in ``columns`` order.
+
+    Raises:
+        ValueError: If any requested column is missing from the table.
+    """
+    rows = conn.execute(
+        "SELECT column_name, data_type FROM information_schema.columns "
+        "WHERE table_name = ?",
+        [table],
+    ).fetchall()
+    type_by_name = {name: dtype for name, dtype in rows}
+    missing = [col for col in columns if col not in type_by_name]
+    if missing:
+        raise ValueError(f"Columns {missing} not found in table '{table}'.")
+    return {col: type_by_name[col] for col in columns}
+
+
 def _insert_many(
     conn: duckdb.DuckDBPyConnection,
     table: str,
     columns: list[str],
     rows: list[list],
+    cache_dir: str | Path | None = None,
 ) -> None:
-    """Bulk-insert rows into a table using executemany.
+    """Bulk-insert rows into a table by staging a CSV and importing it natively.
+
+    Instead of ``executemany`` (row-by-row, slow in DuckDB), the rows are
+    written to a CSV file in the cache directory with the stdlib ``csv``
+    module and then loaded with DuckDB's native ``read_csv`` reader into the
+    target table in a single statement. ``None`` values are written as empty
+    (unquoted) CSV fields, which DuckDB reads back as SQL NULL.
+
+    The staging CSV is deleted after a successful import; on failure it is
+    left in the cache directory for debugging and the exception is re-raised.
 
     Args:
         conn: DuckDB connection.
         table: Target table name.
-        columns: Column names to insert into.
+        columns: Column names to insert into (same order as rows).
         rows: List of value rows.
+        cache_dir: Directory used to stage the CSV files. Defaults to
+            ``cache/csv_bulk`` relative to the working directory.
+
+    Raises:
+        ValueError: If the requested columns are missing from the table.
     """
     if not rows:
         return
-    placeholder = ", ".join(["?"] * len(columns))
-    col_str = ", ".join(columns)
-    conn.executemany(
-        f"INSERT INTO {table} ({col_str}) VALUES ({placeholder})",
-        rows,
+
+    cache_path = Path(cache_dir) if cache_dir else _CSV_CACHE_DIR
+    cache_path.mkdir(parents=True, exist_ok=True)
+    csv_path = cache_path / f"{table}_{uuid4().hex}.csv"
+
+    # Stage the rows as a CSV (header + data). None becomes an empty unquoted
+    # field, which DuckDB's CSV reader converts to NULL on import.
+    with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(columns)
+        writer.writerows(rows)
+
+    col_list = ", ".join(columns)
+    column_types = _table_column_types(conn, table, columns)
+    types_spec = ", ".join(
+        f"'{name}': '{dtype}'" for name, dtype in column_types.items()
     )
+    escaped_path = str(csv_path).replace("'", "''")
+
+    try:
+        conn.execute(
+            f"INSERT INTO {table} ({col_list}) "
+            f"SELECT {col_list} FROM read_csv('{escaped_path}', header=true, "
+            f"columns={{{types_spec}}})"
+        )
+    except Exception:
+        # Keep the staged CSV for debugging; the caller handles the error.
+        raise
+
+    # The import succeeded; remove the staged CSV. A cleanup failure is
+    # non-fatal (rows are already committed), so only warn about it.
+    try:
+        csv_path.unlink()
+    except OSError as exc:  # pragma: no cover - cleanup-only path
+        print(f"Warning: could not remove staged CSV {csv_path}: {exc}")
 
 
 def _flush_batches(
@@ -355,6 +447,7 @@ def _flush_batches(
     batch_proteins: list[list],
     batch_features: list[list],
     batch_compositions: list[list],
+    cache_dir: str | Path | None = None,
 ) -> None:
     """Insert all batched rows into their respective tables.
 
@@ -363,7 +456,8 @@ def _flush_batches(
         batch_proteins: Rows for the proteins table.
         batch_features: Rows for the sequence_features table.
         batch_compositions: Rows for the amino_acid_composition table.
+        cache_dir: Directory used to stage the batch CSVs (see _insert_many).
     """
-    _insert_many(conn, "proteins", _PROTEIN_COLUMNS, batch_proteins)
-    _insert_many(conn, "sequence_features", _FEATURES_COLUMNS, batch_features)
-    _insert_many(conn, "amino_acid_composition", _COMPOSITION_COLUMNS, batch_compositions)
+    _insert_many(conn, "proteins", _PROTEIN_COLUMNS, batch_proteins, cache_dir)
+    _insert_many(conn, "sequence_features", _FEATURES_COLUMNS, batch_features, cache_dir)
+    _insert_many(conn, "amino_acid_composition", _COMPOSITION_COLUMNS, batch_compositions, cache_dir)

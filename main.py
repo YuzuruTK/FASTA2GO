@@ -69,6 +69,14 @@ def main() -> None:
         help="Drop and recreate the database before processing.",
     )
 
+    parser.add_argument(
+        "--csv-cache-dir",
+        type=str,
+        default="cache/csv_bulk",
+        help="Directory used to stage batch CSVs before the native DuckDB "
+        "import (default: cache/csv_bulk).",
+    )
+
     args = parser.parse_args()
 
     print("=" * 60)
@@ -81,6 +89,7 @@ def main() -> None:
         print(f"  Limit        : {args.limit:,}")
     if args.overwrite:
         print(f"  Overwrite    : Yes")
+    print(f"  CSV cache    : {args.csv_cache_dir}")
     print("-" * 60)
 
     try:
@@ -90,6 +99,7 @@ def main() -> None:
             batch_size=args.batch_size,
             limit=args.limit,
             overwrite=args.overwrite,
+            csv_cache_dir=args.csv_cache_dir,
         )
 
         print("=" * 60)
