@@ -18,10 +18,11 @@ This project creates a dataset of protein sequence features that can be used for
   - Aromaticity
 - **Amino acid composition** — percentage of all 20 standard amino acids
 - **Chemical classification** — hydrophobic, polar, charged, sulfur, and aromatic residue percentages
-- **Sequence complexity** — Shannon entropy, amino acid diversity, low-complexity region detection
+- **Sequence complexity** — Shannon entropy and amino acid diversity
 - **DuckDB storage** — native, columnar, analytics-optimized
 - **Bulk insert pipeline** — CSV-staged native DuckDB import (fast `read_csv` batch loading)
-- **UniProt annotation enrichment** — bulk-retrieves Function, protein/gene names, subcellular location, organism, keywords, and more from the UniProtKB REST API, with resumable batches, raw-response caching, and retry/backoff
+- **UniProt annotation enrichment** — one streaming download of the reviewed proteome, ingested natively by DuckDB (Function, protein/gene names, subcellular location, organism, keywords)
+- **Keyword classification** — scores protein function text against a curated label dictionary
 - **CLI with progress bar** — shows percentage, ETA, and processing rate
 
 ## Requirements
@@ -70,6 +71,7 @@ uv run python main.py --input uniprot_sprot.fasta --overwrite
 | `--batch-size` | `-b` | Records per database batch insert | `1000` |
 | `--limit` | `-l` | Max proteins to process (testing) | `None` (all) |
 | `--overwrite` | | Drop and recreate the database before processing | `False` |
+| `--csv-cache-dir` | | Directory to stage batch CSVs before the native import | `cache/csv_bulk` |
 
 ### Query the database
 
@@ -86,25 +88,51 @@ uv run python scripts/query_example.py --top 10
 
 ### Enrich with UniProt annotations
 
+The reviewed proteome is downloaded once as a gzipped TSV and ingested
+natively by DuckDB — no per-accession requests.
+
 ```bash
-# Enrich all proteins from the bulk snapshot (default: one streaming
-# download, then a native DuckDB import -- no per-accession requests)
+# Download the snapshot (cached) and annotate every matching protein
 uv run python scripts/annotate_proteins.py --db proteins.duckdb
 
-# Offline replay of the legacy per-batch *.tsv cache (no network at all)
+# Offline replay of local TSV files only (no network at all)
 uv run python scripts/annotate_proteins.py --db proteins.duckdb --source cache
 
 # Force a fresh snapshot download even when one is cached
-uv run python scripts/annotate_proteins.py --db proteins.duckdb --source bulk --refresh-snapshot
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --refresh-snapshot
 
-# Legacy batched REST retrieval with resume (for non-SwissProt datasets)
-uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api
+# Custom snapshot/cache directory
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --cache-dir cache/uniprot
+```
 
-# Custom batch size (max 100), cache directory, fetch threads (api only)
-uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api --batch-size 100 --cache-dir cache/uniprot --workers 8
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--db` | Path to the DuckDB database | `proteins.duckdb` |
+| `--cache-dir` | Directory for the snapshot and any local TSVs | `cache/uniprot` |
+| `--source` | `bulk` (download + ingest) or `cache` (local TSVs only) | `bulk` |
+| `--refresh-snapshot` | Re-download the snapshot even when cached | `False` |
 
-# Process only a limited number of accessions (for testing, api only)
-uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api --limit 5000
+### Classify protein functions
+
+```bash
+# Score every function text against the curated label dictionary
+uv run python scripts/classify_proteins.py
+
+# Lower the score threshold and export per-protein assignments
+uv run python scripts/classify_proteins.py --threshold 0.5 \
+    --export-assignments exports/protein_classes.csv \
+    --export-unclassified exports/unclassified.csv
+```
+
+### Analyse function word frequencies
+
+```bash
+# Top words across a sample of the function column
+uv run python scripts/word_count_test.py --limit 1000 --top 30
+
+# Export the top-N most frequent words for label building
+uv run python scripts/word_count_test.py --export-top 1000 \
+    --export-top-out data/word_frequencies.csv
 ```
 
 ### Run tests
@@ -170,8 +198,8 @@ Stores amino acid frequency percentages (one column per amino acid).
 
 ### Table: `uniprot_annotations`
 
-Stores UniProt annotations fetched from the UniProtKB REST API, one row per
-local protein. Primary key is `(fasta_id, source_file)`.
+Stores UniProt annotations ingested from the reviewed-proteome snapshot, one
+row per local protein. Primary key is `(fasta_id, source_file)`.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -189,67 +217,40 @@ local protein. Primary key is `(fasta_id, source_file)`.
 | `status` | VARCHAR | `fetched` or `missing_function` |
 | `retrieved_at` | TIMESTAMP | Retrieval timestamp |
 
-### Table: `uniprot_accession_queue`
-
-Tracks the deduplicated UniProt accessions to fetch and their processing
-state (used for resumable batch retrieval).
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `accession` | VARCHAR | PK, UniProt accession |
-| `status` | VARCHAR | `pending`, `completed`, `missing_function`, `not_found`, or `failed` |
-| `retry_count` | INTEGER | Number of failed attempts |
-| `last_attempt` | TIMESTAMP | Last processing attempt |
-| `created_at` | TIMESTAMP | Queue insertion time |
-| `completed_at` | TIMESTAMP | When the accession finished processing |
-
 ## Project Structure
 
 ```
-tcc/
-├── main.py                      # CLI entry point
-├── pyproject.toml               # UV project configuration
-├── README.md                    # This file
+FASTA2GO/
+├── main.py                         # CLI entry point (FASTA → features → DuckDB)
+├── pyproject.toml                  # UV project configuration
+├── README.md                       # This file
 ├── protein_database/
 │   ├── __init__.py
-│   ├── pipeline.py              # Orchestrates parse → extract → store
-│   ├── database/
-│   │   ├── __init__.py
-│   │   ├── models.py            # Dataclasses + DuckDB schema DDL
-│   │   └── connection.py        # DuckDB connection management
-│   ├── parser/
-│   │   ├── __init__.py
-│   │   └── fasta_parser.py      # Streaming FASTA parser
-│   ├── features/
-│   │   ├── __init__.py
-│   │   ├── sequence_features.py # MW, pI, GRAVY, instability, etc.
-│   │   ├── composition.py       # AA percentages + chemical classes
-│   │   └── complexity.py        # Shannon entropy, diversity, low-complexity
-│   └── uniprot/
-│       ├── __init__.py
-│       ├── accession.py         # FASTA header → UniProt accession
-│       ├── batching.py          # Chunk accessions into queries
-│       ├── client.py            # UniProtKB REST client + retry/backoff
-│       ├── cache.py             # Raw response cache
-│       ├── parser.py            # TSV response parsing
-│       └── annotate.py          # Enrichment orchestrator + resume
+│   ├── schema.py                   # Column lists, DDL and analysis view (single source)
+│   ├── fasta.py                    # Streaming FASTA parser
+│   ├── features.py                 # Physicochemical features + amino-acid composition
+│   ├── db.py                       # DuckDB connect / init / bulk insert
+│   ├── pipeline.py                 # Orchestrates parse → extract → store
+│   └── uniprot.py                  # Snapshot download + native DuckDB ingest
 ├── scripts/
-│   ├── query_example.py         # Example DuckDB query script
-│   └── annotate_proteins.py     # UniProt enrichment CLI
+│   ├── lexicon.py                  # Shared word lists + tokenizer
+│   ├── build_functional_labels.py  # Build the curated label dictionary
+│   ├── classify_proteins.py        # Score proteins against the label dictionary
+│   ├── word_count_test.py          # Word-frequency analysis / export
+│   ├── verify_completeness.py      # Data completeness report
+│   ├── query_example.py            # Example DuckDB queries
+│   └── annotate_proteins.py        # UniProt enrichment CLI
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_parser.py
 │   ├── test_features.py
 │   ├── test_composition.py
-│   ├── test_complexity.py
 │   ├── test_pipeline.py
-│   ├── test_uniprot_accession.py
-│   ├── test_uniprot_batching.py
-│   ├── test_uniprot_parser.py
-│   ├── test_uniprot_client.py
-│   └── test_uniprot_annotate.py
-└── uv.lock                      # Locked dependencies
+│   ├── test_uniprot.py
+│   ├── test_functional_labels.py
+│   └── test_classify_proteins.py
+└── uv.lock                         # Locked dependencies
 ```
 
 ## Idempotent Processing

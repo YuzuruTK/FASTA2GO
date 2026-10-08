@@ -31,8 +31,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from protein_database.database.connection import connect
-from scripts.word_count_test import tokenize
+from protein_database.db import connect
+from scripts.lexicon import tokenize
 
 DEFAULT_LABELS = PROJECT_ROOT / "data" / "functional_labels.csv"
 DEFAULT_DB = PROJECT_ROOT / "proteins.duckdb"

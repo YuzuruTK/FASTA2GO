@@ -1,1 +1,0 @@
-"""Feature extraction package for protein sequences."""

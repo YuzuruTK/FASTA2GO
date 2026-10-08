@@ -1,1 +1,0 @@
-"""FASTA parsing package."""

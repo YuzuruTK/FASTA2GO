@@ -25,3 +25,5 @@ cache/
 # Data files (FASTA)
 *.fasta
 *.fa
+*.tar.gz
+*.gz

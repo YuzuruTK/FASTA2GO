@@ -1,1 +1,0 @@
-"""UniProt annotation retrieval and enrichment package."""
