@@ -13,6 +13,7 @@ import duckdb
 import requests
 
 from protein_database import db, pipeline
+from protein_database.progress import track_bytes
 from protein_database.schema import ANNOTATION_COLUMNS
 
 STREAM_URL = "https://rest.uniprot.org/uniprotkb/stream"
@@ -30,7 +31,20 @@ UNIPROT_FIELDS = [
     "protein_existence",
     "organism_name",
     "keyword",
+    "go_p",
+    "go_c",
+    "go_f",
+    "go_id",
 ]
+
+#: UniProt TSV headers for the Gene Ontology columns (must match the
+#: snapshot header exactly; the build script asserts their presence).
+GO_HEADERS = {
+    "Gene Ontology (biological process)",
+    "Gene Ontology (cellular component)",
+    "Gene Ontology (molecular function)",
+    "Gene Ontology IDs",
+}
 
 #: UniProt TSV header -> database annotation column.
 TSV_MAP = {
@@ -79,9 +93,7 @@ def download_snapshot(
         timeout=120,
     ) as response:
         response.raise_for_status()
-        with open(part, "wb") as handle:
-            for chunk in response.iter_content(chunk_size=1 << 20):
-                handle.write(chunk)
+        track_bytes(response, part, desc="Downloading snapshot")
     part.rename(dest)
     return dest
 

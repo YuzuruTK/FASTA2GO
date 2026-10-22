@@ -5,10 +5,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import duckdb
-from tqdm import tqdm
 
 from protein_database import db
 from protein_database.fasta import parse_fasta
+from protein_database.progress import track
 from protein_database.features import composition, sequence_features
 from protein_database.schema import (
     COMPOSITION_COLUMNS,
@@ -97,7 +97,7 @@ def process_fasta_file(
         composition_rows.clear()
 
     try:
-        for record in tqdm(parse_fasta(fasta_path), desc="Processing", unit="protein"):
+        for record in track(parse_fasta(fasta_path), desc="Processing", unit="protein"):
             if limit is not None and processed + skipped >= limit:
                 break
             if record.fasta_id in existing:
@@ -167,7 +167,7 @@ def backfill_features(
             features.clear()
             compositions.clear()
 
-    for fasta_id, source_file, sequence in tqdm(
+    for fasta_id, source_file, sequence in track(
         rows, desc="Backfilling", unit="protein"
     ):
         try:

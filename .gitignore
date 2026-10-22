@@ -13,6 +13,9 @@ wheels/
 .pytest_cache/
 tests/test_proteins.db
 
+# Jupyter
+.ipynb_checkpoints/
+
 # SQLite/DuckDB database files
 *.db
 *.sqlite

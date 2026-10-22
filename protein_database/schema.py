@@ -113,6 +113,12 @@ SCHEMA_SQL = {
         "status VARCHAR NOT NULL, retrieved_at TIMESTAMP NOT NULL, "
         f"PRIMARY KEY {KEY}, FOREIGN KEY {KEY} REFERENCES proteins {KEY})"
     ),
+    "protein_keyword_terms": (
+        "CREATE TABLE IF NOT EXISTS protein_keyword_terms ("
+        "fasta_id VARCHAR NOT NULL, source_file VARCHAR NOT NULL, "
+        "words VARCHAR, phrases VARCHAR, go_ids VARCHAR, "
+        f"PRIMARY KEY {KEY})"
+    ),
 }
 
 #: Table creation order (parents first); drop in reverse.

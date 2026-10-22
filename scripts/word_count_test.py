@@ -39,7 +39,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from protein_database.db import connect
-from scripts.lexicon import EXCLUDED, load_word_file, tokenize
+from scripts.lexicon import is_noise, load_word_file, tokenize
 
 
 def fetch_function_rows(conn, limit: int | None) -> list[tuple]:
@@ -79,15 +79,12 @@ def run_frequency_mode(conn, args) -> None:
         doc_counter.update(set(words))
 
     if not args.no_stopwords:
-        excluded = EXCLUDED
-        if args.exclude_file:
-            excluded |= load_word_file(args.exclude_file)
-        # Also drop pure-numeric tokens (GO evidence codes like 0000250).
+        extra = load_word_file(args.exclude_file) if args.exclude_file else set()
         total_counter = Counter(
-            {w: c for w, c in total_counter.items() if w not in excluded and not w.isdigit()}
+            {w: c for w, c in total_counter.items() if not is_noise(w) and w not in extra}
         )
         doc_counter = Counter(
-            {w: c for w, c in doc_counter.items() if w not in excluded and not w.isdigit()}
+            {w: c for w, c in doc_counter.items() if not is_noise(w) and w not in extra}
         )
 
     total_words = sum(total_counter.values())
@@ -113,8 +110,8 @@ def compute_word_counters(rows: list[tuple], no_stopwords: bool,
                           exclude_file: str | None) -> tuple[Counter, Counter]:
     """Tokenize rows and return (total_counter, doc_counter).
 
-    Applies the stopword/noise/generic filters plus any extra exclusion
-    file, and drops pure-numeric tokens, unless ``no_stopwords`` is set.
+    Applies ``is_noise`` (stopwords, numbers, fragments, short-token debris)
+    plus any extra exclusion file, unless ``no_stopwords`` is set.
     """
     total_counter: Counter[str] = Counter()
     doc_counter: Counter[str] = Counter()
@@ -126,15 +123,12 @@ def compute_word_counters(rows: list[tuple], no_stopwords: bool,
         doc_counter.update(set(words))
 
     if not no_stopwords:
-        excluded = EXCLUDED
-        if exclude_file:
-            excluded |= load_word_file(exclude_file)
-        # Also drop pure-numeric tokens (GO evidence codes like 0000250).
+        extra = load_word_file(exclude_file) if exclude_file else set()
         total_counter = Counter(
-            {w: c for w, c in total_counter.items() if w not in excluded and not w.isdigit()}
+            {w: c for w, c in total_counter.items() if not is_noise(w) and w not in extra}
         )
         doc_counter = Counter(
-            {w: c for w, c in doc_counter.items() if w not in excluded and not w.isdigit()}
+            {w: c for w, c in doc_counter.items() if not is_noise(w) and w not in extra}
         )
 
     return total_counter, doc_counter

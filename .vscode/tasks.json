@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run pytest",
+			"type": "shell",
+			"command": "cd /home/orfeu/Documents/github/FASTA2GO && uv run pytest -q 2>&1 | tail -5",
+			"group": "none"
+		},
+		{
+			"label": "Refresh UniProt snapshot with GO",
+			"type": "shell",
+			"command": "cd /home/orfeu/Documents/github/FASTA2GO && uv run python scripts/annotate_proteins.py --db proteins.duckdb --source bulk --refresh-snapshot 2>&1 | tail -15",
+			"group": "none"
+		}
+	]
+}
