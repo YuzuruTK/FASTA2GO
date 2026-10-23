@@ -135,6 +135,39 @@ uv run python scripts/word_count_test.py --export-top 1000 \
     --export-top-out data/word_frequencies.csv
 ```
 
+### Correlate database features
+
+`correlations.py` is the single home for every correlation in this project:
+term co-occurrence, amino-acid composition vs terms, sequence features vs
+terms, and sequence features vs themselves.
+
+```bash
+# Build every matrix and render every heatmap
+uv run python scripts/correlations.py
+
+# One family at a time
+uv run python scripts/correlations.py terms       --top 50
+uv run python scripts/correlations.py amino-acids --kind phrases
+uv run python scripts/correlations.py features    # z-scored features (default)
+uv run python scripts/correlations.py features --no-scale
+uv run python scripts/correlations.py plot --dpi 300    # render only
+
+# Use another database
+uv run python scripts/correlations.py --db my_proteins.duckdb
+```
+
+`features` writes `exports/correlations/features_vs_words.csv` and
+`features_vs_phrases.csv`: the 15 numeric `sequence_features` columns
+(z-scored, so Da, percentages, entropy and 0..1 properties sit on one common
+axis) correlated against the top-50 word and phrase presence vectors.
+Pearson is affine-invariant, so `--no-scale` returns the same coefficients
+from the raw values; scaling only makes the feature magnitudes comparable.
+
+Every matrix lands in `exports/correlations/` and its heatmap in
+`exports/correlations/plots/` (including
+`sequence_features_correlation.png`). The same analysis is shown inline in
+`notebooks/correlations.ipynb`.
+
 ### Run tests
 
 ```bash
