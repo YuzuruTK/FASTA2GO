@@ -30,3 +30,9 @@ cache/
 *.fa
 *.tar.gz
 *.gz
+
+# Generated correlation plots (regenerate with scripts/correlations.py plot)
+exports/correlations/plots/
+
+# Local planning notes
+plans/
