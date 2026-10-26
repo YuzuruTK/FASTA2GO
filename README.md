@@ -21,7 +21,7 @@ This project creates a dataset of protein sequence features that can be used for
 - **Sequence complexity** — Shannon entropy and amino acid diversity
 - **DuckDB storage** — native, columnar, analytics-optimized
 - **Bulk insert pipeline** — CSV-staged native DuckDB import (fast `read_csv` batch loading)
-- **UniProt annotation enrichment** — one streaming download of the reviewed proteome, ingested natively by DuckDB (Function, protein/gene names, subcellular location, organism, keywords)
+- **UniProt annotation enrichment** — one streaming download of the reviewed proteome ingested natively by DuckDB, plus an incremental `--source api` mode for missing/stale accessions (Function, protein/gene names, subcellular location, organism, keywords)
 - **Keyword classification** — scores protein function text against a curated label dictionary
 - **CLI with progress bar** — shows percentage, ETA, and processing rate
 
@@ -88,8 +88,14 @@ uv run python scripts/query_example.py --top 10
 
 ### Enrich with UniProt annotations
 
-The reviewed proteome is downloaded once as a gzipped TSV and ingested
-natively by DuckDB — no per-accession requests.
+Three modes, all writing through the same staging table and `INSERT … ON
+CONFLICT` upsert:
+
+- **bulk** (default) — one streaming request for the whole reviewed proteome
+  (gzipped TSV, cached), ingested natively by DuckDB.
+- **cache** — replay local TSV files only, no network.
+- **api** — fetch just the accessions that are missing or stale from the
+  `/uniprotkb/accessions` endpoint (1000 per request, retries on 429/5xx).
 
 ```bash
 # Download the snapshot (cached) and annotate every matching protein
@@ -101,6 +107,12 @@ uv run python scripts/annotate_proteins.py --db proteins.duckdb --source cache
 # Force a fresh snapshot download even when one is cached
 uv run python scripts/annotate_proteins.py --db proteins.duckdb --refresh-snapshot
 
+# Incremental: only proteins with no annotation row yet
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api --only-missing
+
+# Refresh annotations older than 7 days (missing rows always qualify)
+uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api --older-than-days 7
+
 # Custom snapshot/cache directory
 uv run python scripts/annotate_proteins.py --db proteins.duckdb --cache-dir cache/uniprot
 ```
@@ -108,9 +120,20 @@ uv run python scripts/annotate_proteins.py --db proteins.duckdb --cache-dir cach
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--db` | Path to the DuckDB database | `proteins.duckdb` |
-| `--cache-dir` | Directory for the snapshot and any local TSVs | `cache/uniprot` |
-| `--source` | `bulk` (download + ingest) or `cache` (local TSVs only) | `bulk` |
+| `--cache-dir` | Directory for the snapshot, staging files and local TSVs | `cache/uniprot` |
+| `--source` | `bulk` (download + ingest), `cache` (local TSVs only) or `api` (missing/stale only) | `bulk` |
 | `--refresh-snapshot` | Re-download the snapshot even when cached | `False` |
+| `--only-missing` | API mode: only proteins without an annotation row | `False` |
+| `--older-than-days` | API mode: also refresh annotations older than N days | `None` |
+| `--limit` | API mode: cap the number of local proteins selected | `None` |
+| `--chunk-size` | API mode: accessions per request (max 1000) | `1000` |
+| `--workers` | API mode: concurrent HTTP requests | `4` |
+| `--max-retries` / `--base-delay` | API mode: retry count and initial backoff | `5` / `1.0` |
+
+Accessions UniProt does not return are stored with `status = 'not_found'`, so
+`--only-missing` does not request them again; use `--older-than-days` to retry
+them later.
+
 
 ### Classify protein functions
 
@@ -247,7 +270,7 @@ row per local protein. Primary key is `(fasta_id, source_file)`.
 | `protein_existence` | VARCHAR | Protein existence |
 | `organism` | VARCHAR | Organism scientific name |
 | `keywords` | VARCHAR | Keywords (semicolon-joined) |
-| `status` | VARCHAR | `fetched` or `missing_function` |
+| `status` | VARCHAR | `fetched`, `missing_function` or `not_found` |
 | `retrieved_at` | TIMESTAMP | Retrieval timestamp |
 
 ## Project Structure
