@@ -1,0 +1,314 @@
+{
+  "counts": {
+    "annotations": 883,
+    "label_counts": {
+      "GO:0001618": 0,
+      "GO:0003677": 35,
+      "GO:0003723": 69,
+      "GO:0003774": 0,
+      "GO:0003824": 276,
+      "GO:0003924": 8,
+      "GO:0005198": 53,
+      "GO:0005215": 29,
+      "GO:0005488": 274,
+      "GO:0008092": 1,
+      "GO:0008289": 1,
+      "GO:0009975": 1,
+      "GO:0016209": 1,
+      "GO:0016491": 27,
+      "GO:0016740": 99,
+      "GO:0016787": 72,
+      "GO:0016829": 23,
+      "GO:0016853": 18,
+      "GO:0016874": 56,
+      "GO:0031386": 0,
+      "GO:0038024": 0,
+      "GO:0042393": 0,
+      "GO:0044183": 6,
+      "GO:0045182": 0,
+      "GO:0045735": 0,
+      "GO:0048018": 0,
+      "GO:0060089": 2,
+      "GO:0060090": 3,
+      "GO:0090729": 3,
+      "GO:0098631": 0,
+      "GO:0098772": 7,
+      "GO:0120274": 0,
+      "GO:0140096": 16,
+      "GO:0140097": 13,
+      "GO:0140098": 54,
+      "GO:0140104": 1,
+      "GO:0140110": 11,
+      "GO:0140223": 0,
+      "GO:0140299": 3,
+      "GO:0140313": 0,
+      "GO:0140657": 22
+    },
+    "labels_used": 29,
+    "max_labels_per_protein": 7,
+    "proteins": 400,
+    "proteins_with_labels": 400,
+    "proteins_without_labels": 0,
+    "statuses": {
+      "mapped": 877,
+      "no_vocabulary_ancestor": 6,
+      "obsolete": 0,
+      "unknown": 0
+    },
+    "vocabulary_terms": 41
+  },
+  "coverage": {
+    "labels_per_protein": {
+      "1": 51,
+      "2": 95,
+      "3": 149,
+      "4": 49,
+      "5": 41,
+      "6": 10,
+      "7": 5
+    },
+    "labels_total": 41,
+    "labels_used": 29,
+    "per_label": {
+      "GO:0001618": 0,
+      "GO:0003677": 35,
+      "GO:0003723": 69,
+      "GO:0003774": 0,
+      "GO:0003824": 276,
+      "GO:0003924": 8,
+      "GO:0005198": 53,
+      "GO:0005215": 29,
+      "GO:0005488": 274,
+      "GO:0008092": 1,
+      "GO:0008289": 1,
+      "GO:0009975": 1,
+      "GO:0016209": 1,
+      "GO:0016491": 27,
+      "GO:0016740": 99,
+      "GO:0016787": 72,
+      "GO:0016829": 23,
+      "GO:0016853": 18,
+      "GO:0016874": 56,
+      "GO:0031386": 0,
+      "GO:0038024": 0,
+      "GO:0042393": 0,
+      "GO:0044183": 6,
+      "GO:0045182": 0,
+      "GO:0045735": 0,
+      "GO:0048018": 0,
+      "GO:0060089": 2,
+      "GO:0060090": 3,
+      "GO:0090729": 3,
+      "GO:0098631": 0,
+      "GO:0098772": 7,
+      "GO:0120274": 0,
+      "GO:0140096": 16,
+      "GO:0140097": 13,
+      "GO:0140098": 54,
+      "GO:0140104": 1,
+      "GO:0140110": 11,
+      "GO:0140223": 0,
+      "GO:0140299": 3,
+      "GO:0140313": 0,
+      "GO:0140657": 22
+    }
+  },
+  "examples": [
+    {
+      "demonstrates": "binding extension: identical protein binding contributes binding; two channel terms collapse into transporter activity",
+      "expected_labels": [
+        "GO:0005215",
+        "GO:0005488"
+      ],
+      "matched": true,
+      "observed_labels": [
+        "GO:0005215",
+        "GO:0005488"
+      ],
+      "observed_terms": [
+        "GO:0015252",
+        "GO:0022841",
+        "GO:0042802"
+      ],
+      "protein_id": "A0A086F3E3"
+    },
+    {
+      "demonstrates": "dedup: two distinct NAD+ synthase terms yield the same {catalytic activity, ligase activity} pair; ATP binding yields binding",
+      "expected_labels": [
+        "GO:0003824",
+        "GO:0005488",
+        "GO:0016787",
+        "GO:0016874"
+      ],
+      "matched": true,
+      "observed_labels": [
+        "GO:0003824",
+        "GO:0005488",
+        "GO:0016787",
+        "GO:0016874"
+      ],
+      "observed_terms": [
+        "GO:0003952",
+        "GO:0004359",
+        "GO:0005524",
+        "GO:0008795"
+      ],
+      "protein_id": "A0A0H2X6L3"
+    },
+    {
+      "demonstrates": "one term producing three labels (topoisomerase -> catalytic activity, isomerase activity, catalytic activity acting on DNA); DNA binding also yields binding",
+      "expected_labels": [
+        "GO:0003677",
+        "GO:0003824",
+        "GO:0005488",
+        "GO:0016853",
+        "GO:0140097"
+      ],
+      "matched": true,
+      "observed_labels": [
+        "GO:0003677",
+        "GO:0003824",
+        "GO:0005488",
+        "GO:0016853",
+        "GO:0140097"
+      ],
+      "observed_terms": [
+        "GO:0003677",
+        "GO:0003917"
+      ],
+      "protein_id": "A0A0L0P6P7"
+    }
+  ],
+  "inputs": {
+    "snapshot": {
+      "bytes": 119517390,
+      "column": "Gene Ontology (molecular function)",
+      "path": "cache/uniprot/bulk/uniprot_sprot.tsv.gz",
+      "sha256": "cdd3225f14df22a880ee8862900d33ca427df98a6570314d8c3aff1353d21556"
+    }
+  },
+  "integrity": {
+    "failure_mode": "hard error on hash mismatch (no silent fallback)",
+    "verified_before_processing": true
+  },
+  "limitations": [
+    "The sample is selected by hash(Entry) % modulus == 0 ordered by accession; it is not a random sample and must not be read as a population estimate.",
+    "Only Molecular Function annotations present in the UniProt snapshot are used; absence of an annotation is not evidence of absence of the function.",
+    "Propagation follows is_a and part_of only.",
+    "The vocabulary is the official generic GO slim plus the documented extension GO:0005488; it is not the unmodified slim.",
+    "Annotations with no vocabulary ancestor are counted, never mapped.",
+    "The full protein base was not processed in this run."
+  ],
+  "mode": "sample",
+  "not_a_population_estimate": true,
+  "outputs": {
+    "protein_labels_csv": {
+      "path": "exports/go_slim/sample/protein_labels.csv",
+      "rows": 400,
+      "sha256": "adbbef27affc4532f334775cc64940eba82bde2c9075ff9fcb5ed2b943457e50"
+    }
+  },
+  "rules": {
+    "alt_id": "resolved to the primary id before traversal",
+    "aspect": "molecular_function",
+    "aspect_guard": "a BP/CC node is never traversed, so a cross-aspect path cannot yield a Molecular Function label",
+    "dedup": "set union per protein (protein, label) pairs are unique",
+    "obsolete_terms": "excluded and counted as 'obsolete'; their labels are never used",
+    "propagation": "all_ancestors (transitive closure, term itself included)",
+    "relations": [
+      "is_a",
+      "part_of"
+    ],
+    "replaced_by": "not followed: an obsolete annotation stays 'obsolete' and does not silently become its replacement",
+    "root_excluded": "GO:0003674",
+    "status_partition": [
+      "mapped",
+      "no_vocabulary_ancestor",
+      "obsolete",
+      "unknown"
+    ],
+    "traversal": "is_a + part_of, expanded only within the vocabulary aspect",
+    "unknown_terms": "not in the ontology and not an alt_id; counted as 'unknown'"
+  },
+  "sample": {
+    "limit": 400,
+    "modulus": 97,
+    "proteins": 400,
+    "selection": "hash(Entry) % modulus == 0, ordered by Entry"
+  },
+  "schema": "fasta2go/go-slim-mapping/1",
+  "slim_equivalence": {
+    "declared_in_slim_file": 140,
+    "equivalent": true,
+    "only_in_ontology": [],
+    "only_in_slim_file": [],
+    "subset": "goslim_generic",
+    "tagged_in_ontology": 140
+  },
+  "sources": {
+    "ontology": {
+      "bytes": 32227785,
+      "cache_path": "cache/go_slim/go-basic.obo",
+      "data_version": "releases/2026-07-26",
+      "name": "go-basic",
+      "sha256": "b08d45b268b8c24ccb2513dbbbc7d4df9f6521c099b413f79eb31e06e0fa3bcc",
+      "url": "https://current.geneontology.org/ontology/go-basic.obo",
+      "versioned_in_git": false
+    },
+    "slim": {
+      "bytes": 125864,
+      "data_version": "go/releases/2026-07-26/subsets/goslim_generic.owl",
+      "name": "goslim_generic",
+      "sha256": "a28d9dd0364e39a6dc926599bd628c524d3c389017b5398642c8cf2484d9f111",
+      "subset": "goslim_generic",
+      "url": "https://current.geneontology.org/ontology/subsets/goslim_generic.obo",
+      "versioned_in_git": false
+    }
+  },
+  "status_examples": {
+    "no_vocabulary_ancestor": [
+      {
+        "name": "electron transfer activity",
+        "primary_id": "GO:0009055",
+        "protein_id": "A0T0C6",
+        "raw_id": "GO:0009055"
+      },
+      {
+        "name": "translation elongation factor activity",
+        "primary_id": "GO:0003746",
+        "protein_id": "A1ALS6",
+        "raw_id": "GO:0003746"
+      },
+      {
+        "name": "electron transfer activity",
+        "primary_id": "GO:0009055",
+        "protein_id": "A1EA39",
+        "raw_id": "GO:0009055"
+      }
+    ]
+  },
+  "vocabulary": {
+    "csv": {
+      "path": "data/go_slim/vocabulary_mf.csv",
+      "sha256": "eaf167916c5bd3d6abb6f05a14d2f0eca0b6b110bd2908bc7f400cadfb4c2795"
+    },
+    "excluded": [
+      "GO:0003674"
+    ],
+    "excluded_justification": "The aspect root is an ancestor of every Molecular Function term; with all-ancestor propagation it becomes a constant positive label. Excluded by rule, never by a training/evaluation mask.",
+    "extension": [
+      "GO:0005488"
+    ],
+    "extension_justification": "binding is the direct child of molecular_function that goslim_generic omits, while its sibling catalytic activity is included. Measured without it in a 400-protein sample: 296 annotation instances reached no slim ancestor (ATP binding alone in 77/400 proteins) and 22/400 proteins had no label at all; with it, 6 instances and 0/400 proteins.",
+    "is_unmodified_official_slim": false,
+    "name": "goslim_generic+GO:0005488",
+    "origin_counts": {
+      "goslim_generic": 40,
+      "project_extension": 1
+    },
+    "removed_by_exclusion": [],
+    "skipped_non_mf_terms": 100,
+    "subset": "goslim_generic",
+    "terms": 41
+  }
+}

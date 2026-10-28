@@ -191,11 +191,307 @@ Every matrix lands in `exports/correlations/` and its heatmap in
 `sequence_features_correlation.png`). The same analysis is shown inline in
 `notebooks/correlations.ipynb`.
 
+### Build the GO Slim Molecular Function labels
+
+```bash
+# Download the pinned ontology + slim (fails if a SHA-256 does not match)
+uv run python scripts/build_go_slim_mapping.py --fetch
+
+# Map an auditable sample; the full protein base is not built yet
+uv run python scripts/build_go_slim_mapping.py --sample-size 400
+```
+
+Writes the frozen vocabulary to `data/go_slim/vocabulary_mf.csv`, the sample
+labels to `exports/go_slim/sample/protein_labels.csv` and an auditable
+`exports/go_slim/sample/manifest.json` (sources, hashes, rules, counts,
+coverage, limitations). Re-running with the same sources is byte-identical.
+
+### Compare models on fixed feature subsets
+
+There is no CLI for this yet, and no experiment has been run on the real base.
+The API is meant to be driven after the dataset and the `SplitPlan` exist:
+
+```python
+from protein_database.ml.model_comparison import compare_models, subsets_from_outcomes
+from protein_database.ml.models import LogisticConfig, RandomForestConfig
+
+comparison = compare_models(
+    dataset,
+    plan,
+    subsets=subsets_from_outcomes([all_features, variance, forward, backward]),
+    models=(LogisticConfig(), RandomForestConfig(n_estimators=200)),
+)
+print(comparison.to_json())   # table, not a ranking
+```
+
 ### Run tests
 
 ```bash
 uv run pytest
 ```
+
+## GO Slim labels (project extension)
+
+The classification target is a **Molecular Function** label space derived from
+the Gene Ontology, not a free-text keyword score.
+
+- **Vocabulary**: the official generic GO slim (`goslim_generic`) **plus one
+  documented extension, `GO:0005488 binding`**, giving 41 MF terms. It is
+  therefore **not** the unmodified official slim, and every artifact says so
+  (`is_unmodified_official_slim: false`).
+- **Why the extension**: `goslim_generic` omits `binding` while keeping its
+  sibling `catalytic activity`. Without it, 296 annotation instances in a
+  400-protein sample reached no slim ancestor (ATP binding alone in 77/400
+  proteins) and 22/400 proteins had no label at all; with it, 6 instances and
+  0/400.
+- **Root excluded**: `GO:0003674 molecular_function` is an ancestor of every MF
+  term, so with all-ancestor propagation it would become a constant positive
+  label. It is excluded by rule, never by a training/evaluation mask.
+- **Propagation**: every applicable ancestor through `is_a` and `part_of` (not
+  only the nearest), the term itself included, restricted to the 41-term
+  vocabulary. `alt_id` is resolved to its primary id, obsolete and unknown terms
+  are excluded and counted, and `(protein, label)` pairs are deduplicated.
+- **Aspect guard**: the traversal is restricted to the vocabulary aspect. A
+  BP/CC node is never expanded, so a cross-aspect path can neither *become* a
+  label nor *lead back* to a Molecular Function label. This is structural, not a
+  property of the current file: the pinned `go-basic.obo` happens to contain
+  **zero cross-namespace edges** among its `is_a`/`part_of` links (audited over
+  all 38,092 live terms), but another release or the unfiltered `go.obo` could
+  contain them, and the result must not depend on which file is in use.
+- **Obsolete terms, replacements and alt_ids**: an annotation to an obsolete
+  term is counted as `obsolete` and produces no label; its `replaced_by` is
+  **not** followed (silently substituting a term would invent a label the
+  curator never assigned). An `alt_id` is resolved to its primary term before
+  traversal, and an `alt_id` of an obsolete term is obsolete too. An obsolete
+  term terminates the walk: it is neither traversed nor a label.
+- **Provenance**: `data/go_slim/sources.json` pins the release and the SHA-256
+  of both `.obo` files. The 30 MB `go-basic.obo` is **not** versioned in git; it
+  lives in `cache/go_slim/` and any hash mismatch is a hard error. The slim file
+  is checked against the `subset: goslim_generic` signature inside the ontology
+  (140 terms each, symmetric difference empty).
+- **Accounting**: annotations are partitioned into `mapped`,
+  `no_vocabulary_ancestor`, `obsolete` and `unknown`, and the counts must add up
+  to the annotation total; a protein with no vocabulary label is reported, never
+  silently dropped or treated as all-negative.
+- **Limitations**: only MF annotations present in the UniProt snapshot are used
+  (absence of an annotation is not evidence of absence of the function); the
+  sample is a deterministic hash-based slice, **not** a population estimate; the
+  propagation rules above are the only relations considered.
+
+## Model comparison (project extension)
+
+`protein_database/ml/model_comparison.py` scores several model families on
+**fixed** feature subsets under one evaluation policy. It is infrastructure
+only: no experiment on the real base has been run, and the external test block
+has never been read.
+
+### Supported models
+
+| `model_id` | Pipeline | Scaling | Status |
+| --- | --- | --- | --- |
+| `logistic_ovr` (`LogisticConfig`) | `StandardScaler` → `OneVsRestClassifier(LogisticRegression)` | yes | default, frozen reference |
+| `random_forest_ovr` (`RandomForestConfig`) | `OneVsRestClassifier(RandomForestClassifier)` | none | supported |
+| `xgboost_ovr` (`XGBoostConfig`) | `OneVsRestClassifier(XGBClassifier)` | none | **optional dependency, not installed** |
+
+- All three wrap the classifier in `OneVsRestClassifier`, so the target encoding
+  (one binary task per label) is identical and only the model varies.
+- `LogisticConfig` and `build_estimator()` keep exactly the previous defaults
+  (`C=1.0`, `liblinear`, `max_iter=1000`, `tol=1e-4`, `random_state=42`); the
+  logistic pipeline is unchanged.
+- `RandomForestConfig` exposes `n_estimators`, `max_depth`,
+  `min_samples_split`, `min_samples_leaf`, `max_features`, `class_weight`,
+  `n_jobs` and `random_state`. No scaler is inserted (trees are invariant to
+  monotone rescaling). `n_jobs` parallelises labels only; each forest stays
+  sequential, and a fixed `random_state` makes a run reproducible.
+- `XGBoostConfig` **requires `xgboost` to be installed separately**
+  (`uv add xgboost`); it is not a project dependency and is absent from
+  `pyproject.toml`/`uv.lock`. Requesting it without the package raises
+  `MissingDependencyError` instead of silently substituting another model.
+- `describe_estimator(config)` records the effective configuration, including
+  `model_id`, the pipeline type, whether a scaler is used, the 0.5 decision
+  threshold and, for XGBoost, whether the dependency was found.
+
+### Evaluation conventions
+
+`compare_models(dataset, plan, subsets=..., models=...)` reuses the selection
+evaluator, so every number follows the same rules:
+
+- the validation folds of the shared `SplitPlan` (`fold_0`, `fold_1`, ...); the
+  test block is never indexed;
+- the same label masks (`fit`: ≥2 positives and ≥2 negatives; `eval`: ≥1
+  positive) intersected per fold, with excluded labels recorded per fold;
+- the same macro-F1 implementation and the same fixed 0.5 threshold;
+- any transformation fitted inside the fold's training block only;
+- macro-F1 per fold, plus mean and population standard deviation over folds;
+- two separate cost counters: `n_estimator_fits` (pipelines fitted, one per
+  fold) and `n_binary_fits` (binary models trained inside OvR, per label and
+  fold), so the two are never conflated. Wall-clock time and memory are **not**
+  measured here: they belong to the run budget of the experiment layer, and
+  making them part of the report would make it non-reproducible;
+- failures recorded, not hidden: a missing dependency or a crash becomes a row
+  with `error` (or is re-raised with `on_error="raise"`), and non-convergence is
+  reported through `converged` plus `non_converged()`.
+
+Feature subsets are supplied by the caller — typically
+`subsets_from_outcomes([all_features_outcome(...), variance_prefilter_outcome(...),
+forward_outcome(...), backward_outcome(...)])` from the previous phase — so the
+subset stays fixed while the model varies. No per-model feature search is done.
+
+The report (`ModelComparison.as_dict()` / `.to_json()`) is a table, not a
+ranking: it has no "best"/"winner" notion, because no significance test exists
+yet. Differences between models on synthetic data only prove that the
+infrastructure works; they say **nothing** about which family predicts GO terms
+better on real proteins, and no superiority claim may be made from them.
+
+### Provisional parameters (pending scientific consolidation)
+
+The following are placeholders chosen for reproducibility, not tuned values:
+`C=1.0` and `max_iter=1000` (logistic), `n_estimators=200`, `max_depth=None`,
+`max_features="sqrt"` (forest), `n_estimators=200`, `max_depth=6`,
+`learning_rate=0.3` (xgboost), `class_weight=None` as the default of every
+family, the 0.5 threshold, and the simple mean over folds. Class weighting is
+available in the model configurations and in the experiment catalog
+(`logistic_balanced`, `forest_balanced`), but it is not chosen by default and it
+is **not** evaluated yet. Supervised filtering (`SelectKBest`, chi²) is not
+implemented.
+
+## Experiment orchestration (project extension)
+
+`protein_database/ml/experiment_*.py` runs a **plan-then-execute** experiment:
+the tasks are enumerated, costed and rejected *before* anything is fitted, and
+execution only starts when a consumer explicitly asks for it. No real run has
+been performed; every number produced so far comes from synthetic data in the
+test suite.
+
+### Architecture
+
+| Module | Responsibility |
+| --- | --- |
+| `experiment_config` | typed, serialisable configuration; catalog; content-derived ids |
+| `experiment_plan` | enumerates tasks, estimates cost, decides availability, defines states |
+| `experiment_budget` | `RunBudget` limits, `BudgetLedger` observed counters |
+| `experiment_guard` | wraps `X`/`y` so reading a test row raises `TestBlockAccessError` |
+| `experiment_runner` | executes the plan, records states, appends to a JSONL store, builds the report |
+| `experiment_report` | manifest (reproduction record) and final report (JSON) |
+
+Planning and execution never share a data path: `build_execution_plan` reads only
+dataset metadata (shapes, feature and label names, accessions) and the folds'
+index arrays, so `runner.plan()` and `runner.manifest()` are safe to call on the
+real base without training anything.
+
+### Catalog (moderate, provisional)
+
+| Label | Family | Distinguishing parameter |
+| --- | --- | --- |
+| `logistic_base` | logistic | the frozen defaults |
+| `logistic_balanced` | logistic | `class_weight="balanced"` |
+| `logistic_C0.1` | logistic | `C=0.1` (stronger L2) |
+| `forest_base` | random forest | `n_estimators=200`, `max_features="sqrt"` |
+| `forest_balanced` | random forest | `class_weight="balanced"` |
+| `forest_shallow` | random forest | `max_depth=8` |
+| `xgboost_base` | xgboost | optional dependency, not installed |
+
+Each entry changes one justified parameter relative to its family baseline, so a
+difference in score stays interpretable. The catalog is a candidate list, **not**
+a claim about good hyperparameters. Expected size:
+
+```
+n_tasks = len(models) x len(strategies) + len(selection) = 7 x 4 + 2 = 30
+```
+
+(28 evaluations + one forward and one backward selection task.) The four
+XGBoost tasks are planned as `skipped_unavailable_dependency` while the package
+is absent; nothing else is blocked, and XGBoost is never simulated with another
+estimator. Balancing is only offered where the implementation supports it, which
+is why `XGBoostConfig` has no balancing entry: it exposes no such parameter here.
+
+### Identifiers
+
+* model configuration → `<family>/<12 hex>` from the effective parameters
+  (defaults included, environment-dependent fields excluded);
+* selection configuration → `forward/...` or `backward/...`;
+* whole configuration → `config_id`; plan → `plan_id`; task → 20 hex;
+* identical configurations are deduplicated (first label kept, the drop is
+  recorded in `deduplicated_labels`); different configurations of one family
+  stay distinct, which is what allows a within-family comparison.
+
+No identifier, and no scheduling decision, depends on the external test block:
+the folds id covers only `fold.train`/`fold.validation`, and the test indices are
+not part of any payload.
+
+### Budget: what is guaranteed and what is only estimated
+
+| Limit | Status |
+| --- | --- |
+| `max_tasks` | guaranteed: a task that would exceed it never starts |
+| `max_fold_evaluations` | guaranteed against the *estimate* of each task |
+| `max_estimator_fits` | guaranteed against the estimate; binary fits are recorded but not budgeted |
+| `max_selection_candidate_evaluations` | guaranteed against an upper bound of the search |
+| `max_seconds` | **cooperative**: checked before each task, never interrupts a running fit |
+| memory | **not** budgeted; no portable hard limit is promised |
+
+Estimates are upper bounds (`exact: false`) derived from folds, features, labels
+and selection parameters; observed costs come from the evaluation and selection
+objects that actually ran. A selection task costs `candidate evaluations x folds`.
+Because scikit-learn estimators cannot be cancelled safely, no `cancelled` state
+exists: a task either finishes or is never started.
+
+### States
+
+`planned`, `completed`, `failed`, `skipped_budget`,
+`skipped_unavailable_dependency`, `skipped_dependency_failure`. A failed
+selection always leaves its dependent evaluations `skipped_dependency_failure`
+with no substitute subset; a `ConvergenceWarning` keeps the task `completed` with
+`converged: false` and a warning, never `failed`. With
+`FailurePolicy(on_task_error="abort")` the remaining tasks stay `planned` with an
+explicit note - they are not reported as executed, skipped or cancelled.
+
+### Inspecting a plan without executing it
+
+```python
+from protein_database.ml.experiment_budget import RunBudget
+from protein_database.ml.experiment_config import default_experiment_config
+from protein_database.ml.experiment_runner import ExperimentRunner
+
+config = default_experiment_config()
+runner = ExperimentRunner(config, dataset, split_plan, budget=RunBudget(max_tasks=12))
+
+plan = runner.plan()          # enumerates 30 tasks, fits nothing
+print(plan.as_dict())         # task ids, order, estimates, availability, reasons
+manifest = runner.manifest()  # protocol, configuration, folds, versions, policy
+
+# execution is a separate, explicit step (not performed in this phase):
+# runner.run(store_path="exports/experiments/run.jsonl")
+```
+
+`runner.run(...)` appends one JSON line per finished task (a header plus task
+records), so an interrupted run keeps its partial results. On resume only
+`completed` records whose `protocol_version`, `config_id`, `dataset_id`,
+`folds_id` and `plan_id` all match are reused; anything else raises
+`ResumeMismatchError`. The manifest and the final report are written next to the
+store as `<store>.manifest.json` and `<store>.report.json`.
+
+The guard is not a post-hoc check: the runner hands the evaluators a dataset
+whose `X`/`y` raise `TestBlockAccessError` on any row selection that intersects
+`plan.test`, so an accidental read fails in the test that causes it.
+
+### Determinism and its limits
+
+Identical configuration + dataset metadata + folds give an identical `plan_id`,
+identical task ids and identical task order; two runs of the same plan produce
+identical result payloads (per-round wall-clock times are dropped from the stored
+selection history). Reproducibility ends where the libraries end: identical
+floating-point scores across machines or scikit-learn versions are not promised.
+`created_at` and the environment versions are metadata and never part of an
+identifier.
+
+### Still pending approval
+
+Real execution on the base, the external-test evaluation protocol, the catalog
+values above, the selection ceilings (`max_features=10`, `min_features=2` for
+backward elimination), the 0.5 threshold, the simple mean over folds, class
+weighting as a scientific choice, and every open decision from the previous
+phases (PF1-PF5, FS1-FS8, BD1-BD6, R-DS5, R-GO1/2).
 
 ## Database Schema
 
@@ -287,7 +583,23 @@ FASTA2GO/
 │   ├── features.py                 # Physicochemical features + amino-acid composition
 │   ├── db.py                       # DuckDB connect / init / bulk insert
 │   ├── pipeline.py                 # Orchestrates parse → extract → store
-│   └── uniprot.py                  # Snapshot download + native DuckDB ingest
+│   ├── uniprot.py                  # Snapshot download + native DuckDB ingest
+│   └── ml/
+│       ├── evaluation.py           # Label masks + multilabel metrics
+│       ├── dataset.py              # Feature/label loading, alignment, validation
+│       ├── splits.py               # Grouped split plan + leakage guards
+│       ├── prefilter.py            # Per-fold variance filter + correlation report
+│       ├── models.py               # Model configs (logistic, forest, optional xgboost)
+│       ├── feature_selection.py    # Forward selection / backward elimination
+│       ├── strategies.py           # 4 strategies and their comparison
+│       ├── model_comparison.py     # Model x feature-subset comparison report
+│       ├── experiment_config.py    # Experiment configuration, catalog, ids
+│       ├── experiment_plan.py      # Task enumeration + cost estimates
+│       ├── experiment_budget.py    # RunBudget limits and observed counters
+│       ├── experiment_guard.py     # Test-block access guard (raises loudly)
+│       ├── experiment_runner.py    # Plan-then-execute, states, JSONL store
+│       ├── experiment_report.py    # Manifest + final report builders
+│       └── go_slim.py              # GO Slim MF vocabulary, propagation, mapping
 ├── scripts/
 │   ├── lexicon.py                  # Shared word lists + tokenizer
 │   ├── build_functional_labels.py  # Build the curated label dictionary
@@ -295,7 +607,8 @@ FASTA2GO/
 │   ├── word_count_test.py          # Word-frequency analysis / export
 │   ├── verify_completeness.py      # Data completeness report
 │   ├── query_example.py            # Example DuckDB queries
-│   └── annotate_proteins.py        # UniProt enrichment CLI
+│   ├── annotate_proteins.py        # UniProt enrichment CLI
+│   └── build_go_slim_mapping.py    # GO Slim MF labels (auditable sample)
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
@@ -306,6 +619,7 @@ FASTA2GO/
 │   ├── test_uniprot.py
 │   ├── test_functional_labels.py
 │   └── test_classify_proteins.py
+├── data/go_slim/                   # Pinned GO sources + frozen 41-term vocabulary
 └── uv.lock                         # Locked dependencies
 ```
 
