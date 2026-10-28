@@ -7,17 +7,18 @@ delivers the whole reviewed proteome as gzipped TSV. DuckDB's native
 protein row.
 
 API mode: only the accessions that are missing or stale are requested from
-the UniProtKB ``/accessions`` endpoint (1000 accessions per request), and the
-responses go through the exact same staging table and upsert statement.
+the UniProtKB ``/accessions`` endpoint, one batch of up to 1000 accessions per
+request, and the responses go through the exact same staging table and upsert
+statement. Requests are sequential: one batch costs one HTTP call, so
+concurrency bought nothing and is not worth its complexity here. A failed
+request is reported and leaves the database untouched; it is never recorded as
+a missing annotation.
 """
 
 import glob as glob_module
 import gzip
 import re
-import threading
 import time
-from collections import deque
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -91,6 +92,15 @@ STAGING_TABLE = "uniprot_staging"
 
 class AccessionFormatError(Exception):
     """UniProt rejected the accession list with HTTP 400."""
+
+
+class UniProtRequestError(RuntimeError):
+    """A request failed: network error, empty body or unexpected status.
+
+    Deliberately different from a valid response with no rows (UniProt does
+    not know the accession): a failure is reported and never written to the
+    database as ``not_found``.
+    """
 
 
 def _quote(value: str | Path) -> str:
@@ -322,84 +332,55 @@ def _request_tsv(
     base_delay: float,
     max_delay: float,
 ) -> str:
-    """GET one accession batch from UniProtKB, retrying transient failures."""
+    """GET one accession batch and return its TSV body (header included).
+
+    Transient failures (429/5xx, network errors, an empty HTTP 200 body) are
+    retried with backoff. Anything else raises: a failed request must never be
+    mistaken for "UniProt has no annotation for these accessions".
+
+    Raises:
+        AccessionFormatError: HTTP 400 - UniProt rejected the identifier list.
+        UniProtRequestError: Network error, empty body or unexpected status.
+    """
     params = {
         "accessions": ",".join(accessions),
         "format": "tsv",
         "fields": ",".join(UNIPROT_FIELDS),
     }
-    last_error: Exception | None = None
+    last_error = "UniProt request failed"
     for attempt in range(max_retries + 1):
         retry_after: str | None = None
         try:
             response = session.get(ACCESSIONS_URL, params=params, timeout=120)
         except requests.RequestException as exc:
-            last_error = exc
+            last_error = f"network error: {exc}"
         else:
             if response.status_code == 200:
-                return response.text
-            if response.status_code == 400:
+                if response.text.strip():
+                    return response.text
+                last_error = "HTTP 200 with an empty body"
+            elif response.status_code == 400:
                 raise AccessionFormatError(response.text.strip()[:300])
-            if response.status_code not in RETRYABLE_STATUSES:
-                response.raise_for_status()
-                raise requests.HTTPError(  # pragma: no cover - defensive
-                    f"Unexpected HTTP {response.status_code}: {response.text[:200]}"
+            elif response.status_code in RETRYABLE_STATUSES:
+                retry_after = response.headers.get("Retry-After")
+                last_error = f"HTTP {response.status_code}: {response.text.strip()[:200]}"
+            else:
+                raise UniProtRequestError(
+                    f"HTTP {response.status_code} from {ACCESSIONS_URL}: "
+                    f"{response.text.strip()[:200]}"
                 )
-            retry_after = response.headers.get("Retry-After")
-            last_error = requests.HTTPError(
-                f"HTTP {response.status_code}: {response.text[:200]}"
-            )
         if attempt == max_retries:
             break
         time.sleep(_backoff(attempt, base_delay, max_delay, retry_after))
-    raise last_error or requests.HTTPError("UniProt request failed")
+    raise UniProtRequestError(last_error)
 
 
-def _fetch_bisecting(
-    accessions: list[str],
-    session: requests.Session,
-    *,
-    max_retries: int,
-    base_delay: float,
-    max_delay: float,
-) -> tuple[str | None, list[str], list[str]]:
-    """Fetch a batch, halving it when UniProt rejects the accession list.
-
-    A single malformed accession makes ``/accessions`` answer HTTP 400 for
-    the whole batch, so the batch is split recursively until the offender is
-    isolated. Returns ``(header, row_lines, rejected_accessions)``.
-    """
-    try:
-        text = _request_tsv(
-            accessions,
-            session,
-            max_retries=max_retries,
-            base_delay=base_delay,
-            max_delay=max_delay,
-        )
-    except AccessionFormatError:
-        if len(accessions) == 1:
-            return None, [], accessions
-        middle = len(accessions) // 2
-        left = _fetch_bisecting(
-            accessions[:middle],
-            session,
-            max_retries=max_retries,
-            base_delay=base_delay,
-            max_delay=max_delay,
-        )
-        right = _fetch_bisecting(
-            accessions[middle:],
-            session,
-            max_retries=max_retries,
-            base_delay=base_delay,
-            max_delay=max_delay,
-        )
-        return left[0] or right[0], left[1] + right[1], left[2] + right[2]
-    lines = text.splitlines()
+def _parse_tsv(text: str) -> tuple[str, list[str]]:
+    """Split a UniProtKB TSV body into ``(header, row lines)``."""
+    lines = [line for line in text.splitlines() if line.strip()]
     if not lines:
-        return None, [], []
-    return lines[0], [line for line in lines[1:] if line.strip()], []
+        raise UniProtRequestError("UniProt returned no header line.")
+    return lines[0], lines[1:]
 
 
 def fetch_tsv(
@@ -410,23 +391,46 @@ def fetch_tsv(
     base_delay: float = 1.0,
     max_delay: float = 30.0,
 ) -> tuple[str | None, list[str], list[str]]:
-    """Fetch one API batch; return ``(header, rows, rejected accessions)``.
+    """Fetch one batch; return ``(header, row lines, rejected accessions)``.
 
-    Accessions that cannot be valid UniProtKB accessions are rejected before
-    the request, so a single odd FASTA identifier never costs a round trip.
+    Identifiers that are not valid UniProtKB accessions are rejected without a
+    request. UniProt answers HTTP 400 for a whole batch when one identifier is
+    malformed, so that case is the only one re-checked, one accession at a time:
+    only identifiers UniProt really rejects are dropped. A header with no rows
+    means "UniProt has no entry for these accessions", which is different from a
+    failed request and is exactly what the caller may record as ``not_found``.
+
+    Raises:
+        UniProtRequestError: On a network error or an unexpected HTTP status.
     """
     valid = [value for value in accessions if ACCESSION_PATTERN.match(value)]
     rejected = [value for value in accessions if not ACCESSION_PATTERN.match(value)]
     if not valid:
         return None, [], rejected
-    header, rows, invalid = _fetch_bisecting(
-        valid,
-        session or requests.Session(),
-        max_retries=max_retries,
-        base_delay=base_delay,
-        max_delay=max_delay,
-    )
-    return header, rows, rejected + invalid
+
+    client = session or requests.Session()
+    options = {
+        "max_retries": max_retries,
+        "base_delay": base_delay,
+        "max_delay": max_delay,
+    }
+    try:
+        header, rows = _parse_tsv(_request_tsv(valid, client, **options))
+        return header, rows, rejected
+    except AccessionFormatError as error:
+        print(f"Warning: UniProt rejected the batch ({error}); checking each one.")
+
+    header: str | None = None
+    rows: list[str] = []
+    for accession in valid:
+        try:
+            one = _parse_tsv(_request_tsv([accession], client, **options))
+        except AccessionFormatError:
+            rejected.append(accession)
+            continue
+        header = header or one[0]
+        rows.extend(one[1])
+    return header, rows, rejected
 
 
 def _stage_api_chunk(
@@ -480,25 +484,31 @@ def _mark_not_found(
     return len(rows)
 
 
-def _process_api_chunk(
+def _write_chunk(
     conn: duckdb.DuckDBPyConnection,
     chunk: list[str],
-    result: tuple[str | None, list[str], list[str]],
+    fetched: tuple[str | None, list[str], list[str]],
     *,
     keys_by_accession: dict[str, list[tuple[str, str]]],
     retrieved_at: datetime,
     cache_dir: str | Path,
-    stats: dict[str, int],
-) -> None:
-    """Stage, upsert and book-keep one fetched chunk."""
-    header, rows, rejected = result
+) -> tuple[int, int, int]:
+    """Stage one response, upsert it, and record what UniProt did not return.
+
+    Returns ``(written, missing_function, not_found)``. Only accessions this
+    successful response did not include - or that UniProt itself rejected - are
+    marked ``not_found``.
+    """
+    header, rows, rejected = fetched
     staged = _stage_api_chunk(conn, header, rows, cache_dir)
     try:
         if staged:
             written, missing = _upsert_annotations(conn, retrieved_at)
             found = {
                 row[0].upper()
-                for row in conn.execute(f'SELECT "Entry" FROM {STAGING_TABLE}').fetchall()
+                for row in conn.execute(
+                    f"SELECT \"Entry\" FROM {STAGING_TABLE}"
+                ).fetchall()
             }
         else:
             written = missing = 0
@@ -512,9 +522,17 @@ def _process_api_chunk(
         for accession in sorted(absent)
         for key in keys_by_accession.get(accession, [])
     ]
-    stats["annotated"] += written
-    stats["missing_function"] += missing
-    stats["not_found"] += _mark_not_found(conn, labels, retrieved_at, cache_dir)
+    return written, missing, _mark_not_found(conn, labels, retrieved_at, cache_dir)
+
+
+def _annotation_status(conn: duckdb.DuckDBPyConnection) -> str:
+    """One line describing what the annotation table currently holds."""
+    rows = conn.execute(
+        "SELECT status, count(*) FROM uniprot_annotations GROUP BY 1 ORDER BY 1"
+    ).fetchall()
+    if not rows:
+        return "no annotations yet"
+    return ", ".join(f"{status}={count:,}" for status, count in rows)
 
 
 def _annotate_via_api(
@@ -525,12 +543,16 @@ def _annotate_via_api(
     older_than_days: int | None,
     limit: int | None,
     chunk_size: int,
-    workers: int,
     max_retries: int,
     base_delay: float,
     max_delay: float,
 ) -> dict:
-    """Fetch only missing/stale accessions and upsert them chunk by chunk."""
+    """Fetch the missing/stale accessions chunk by chunk and upsert each chunk.
+
+    A chunk whose request fails is reported and skipped: nothing is written for
+    it, so its proteins keep whatever annotation they already had and are
+    selected again on the next run. They are never recorded as ``not_found``.
+    """
     total = conn.execute("SELECT count(*) FROM proteins").fetchone()[0]
     selection = select_stale_rows(
         conn,
@@ -539,7 +561,12 @@ def _annotate_via_api(
         limit=limit,
     )
     if not selection:
-        print("Nothing to annotate: no local accession is missing or stale.")
+        print(
+            "Nothing to annotate: no local accession is missing or stale "
+            f"({_annotation_status(conn)}). Use --older-than-days N to refresh "
+            "annotations stored more than N days ago; that also retries the "
+            "proteins recorded as not_found."
+        )
         return {
             "total_local_proteins": total,
             "annotated": 0,
@@ -569,51 +596,36 @@ def _annotate_via_api(
     retrieved_at = datetime.now(timezone.utc)
     stats = {"annotated": 0, "missing_function": 0, "not_found": 0, "failed": 0}
     requests_made = 0
-    thread_local = threading.local()
-
-    def _fetch(chunk: list[str]) -> tuple[str | None, list[str], list[str]]:
-        session = getattr(thread_local, "session", None)
-        if session is None:
-            session = requests.Session()  # requests.Session is not thread-safe
-            thread_local.session = session
-        return fetch_tsv(
-            chunk,
-            session=session,
-            max_retries=max_retries,
-            base_delay=base_delay,
-            max_delay=max_delay,
-        )
-
-    def _run(chunk: list[str], future) -> None:
-        nonlocal requests_made
+    session = requests.Session()
+    for chunk in track(chunks, desc="Annotating (api)", unit="batch"):
         requests_made += 1
         try:
-            result = future.result()
-        except Exception as exc:  # noqa: BLE001 - keep going, retry next run
+            fetched = fetch_tsv(
+                chunk,
+                session=session,
+                max_retries=max_retries,
+                base_delay=base_delay,
+                max_delay=max_delay,
+            )
+        except UniProtRequestError as error:
             stats["failed"] += len(chunk)
-            print(f"Warning: {len(chunk)} accessions failed: {exc}")
-            return
-        _process_api_chunk(
+            print(
+                f"Error: {len(chunk):,} accession(s) could not be fetched "
+                f"({error}). They keep their current annotation and are left "
+                "untouched, not marked as not_found."
+            )
+            continue
+        written, missing, not_found = _write_chunk(
             conn,
             chunk,
-            result,
+            fetched,
             keys_by_accession=keys_by_accession,
             retrieved_at=retrieved_at,
             cache_dir=cache_dir,
-            stats=stats,
         )
-
-    window: deque = deque()
-    in_flight = max(1, workers) * 2
-    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
-        for chunk in track(chunks, desc="Annotating (api)", unit="batch"):
-            window.append((chunk, pool.submit(_fetch, chunk)))
-            if len(window) >= in_flight:
-                pending_chunk, future = window.popleft()
-                _run(pending_chunk, future)
-        while window:
-            pending_chunk, future = window.popleft()
-            _run(pending_chunk, future)
+        stats["annotated"] += written
+        stats["missing_function"] += missing
+        stats["not_found"] += not_found
 
     return {
         "total_local_proteins": total,
@@ -639,7 +651,6 @@ def annotate_database(
     older_than_days: int | None = None,
     limit: int | None = None,
     chunk_size: int = MAX_ACCESSIONS_PER_REQUEST,
-    workers: int = 4,
     max_retries: int = 5,
     base_delay: float = 1.0,
     max_delay: float = 30.0,
@@ -659,7 +670,6 @@ def annotate_database(
             N days (missing rows always qualify).
         limit: API mode only - maximum number of local proteins to select.
         chunk_size: Accessions per API request (1..1000).
-        workers: Concurrent HTTP fetches (database writes stay single-threaded).
         max_retries: Retries per request for 429/5xx responses.
         base_delay: Initial backoff delay in seconds.
         max_delay: Maximum backoff delay in seconds.
@@ -690,7 +700,6 @@ def annotate_database(
                 older_than_days=older_than_days,
                 limit=limit,
                 chunk_size=chunk_size,
-                workers=workers,
                 max_retries=max_retries,
                 base_delay=base_delay,
                 max_delay=max_delay,
@@ -748,4 +757,3 @@ def annotate_database(
         }
     finally:
         conn.close()
-

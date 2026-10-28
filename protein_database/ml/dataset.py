@@ -173,6 +173,50 @@ def load_features(
     return FeatureTable(keys=keys, X=matrix, feature_names=names)
 
 
+def load_sequence_groups(conn: duckdb.DuckDBPyConnection, accessions) -> dict[str, str]:
+    """Group label per accession, computed as ``md5(sequence)`` in the database.
+
+    Two proteins end up in the same group when their sequences are identical, so
+    duplicate sequences cannot sit on both sides of a split. This groups
+    **identical sequences only**: homologous proteins whose sequences differ are
+    not grouped together, and no clustering or alignment is performed.
+
+    Args:
+        conn: Open DuckDB connection with the ``proteins`` table.
+        accessions: Accessions to look up (only these are returned).
+
+    Returns:
+        ``{accession: group_id}`` for every requested accession.
+
+    Raises:
+        DatasetError: On an invalid accession, an accession that maps to two
+            different sequences, or an accession absent from the database.
+    """
+    cleaned = _clean_accessions(accessions)
+    placeholders = ", ".join("?" for _ in cleaned)
+    rows = conn.execute(
+        f"SELECT upper(split_part(fasta_id, chr(124), 2)), md5(sequence) "
+        f"FROM proteins WHERE upper(split_part(fasta_id, chr(124), 2)) "
+        f"IN ({placeholders})",
+        list(cleaned),
+    ).fetchall()
+
+    groups: dict[str, str] = {}
+    for accession, group_id in rows:
+        previous = groups.setdefault(accession, group_id)
+        if previous != group_id:
+            raise DatasetError(
+                f"Accession {accession!r} has more than one sequence in the "
+                "database; its group would be ambiguous."
+            )
+    missing = [name for name in cleaned if name not in groups]
+    if missing:
+        raise DatasetError(
+            f"{len(missing)} accession(s) are not in the database: {missing[:5]}"
+        )
+    return groups
+
+
 def load_labels_csv(
     path: str | Path,
     label_names: Sequence[str],

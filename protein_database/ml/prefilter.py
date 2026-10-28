@@ -13,10 +13,10 @@ Two unsupervised filters, both learned **only** from the block passed to
   lists the pairs above a threshold. It **never drops a column**: removing one
   side of a correlated pair needs a tie-break policy that has not been approved.
 
-Leakage rule: the ``fit_*`` functions receive the fitting block and nothing else;
-``transform`` applies the stored decision to new rows. :func:`fit_prefilter_per_fold`
-builds one prefilter per :class:`~protein_database.ml.splits.SplitPlan` fold from
-``X[fold.train]``, so validation rows never influence a decision.
+Leakage rule: :func:`fit_variance_filter` receives the fitting block and nothing
+else, and the feature-selection layer calls it with ``X[fold.train]`` only, so
+validation rows never influence the decision. ``transform`` applies the stored
+decision to new rows.
 
 Future supervised filters (not implemented here)
 ------------------------------------------------
@@ -35,8 +35,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from protein_database.ml.dataset import DatasetError, validate_feature_matrix
-from protein_database.ml.splits import SplitPlan
+from protein_database.ml.dataset import validate_feature_matrix
 
 DEFAULT_VARIANCE_THRESHOLD = 0.0
 DEFAULT_CORRELATION_THRESHOLD = 0.9
@@ -227,106 +226,3 @@ def correlation_report(
         pairs=tuple(pairs),
         constant_columns=constant,
     )
-
-
-@dataclass(frozen=True)
-class Prefilter:
-    """Variance filter plus the correlation audit of the surviving columns."""
-
-    variance: VarianceFilter
-    correlation: CorrelationReport
-    n_samples_fit: int
-
-    def transform(self, X: object) -> np.ndarray:
-        """Apply the fitted variance filter to new rows (never refits)."""
-        return self.variance.transform(X)
-
-    def report(self) -> dict:
-        """Audit payload: parameters, kept/removed columns and redundant pairs."""
-        return {
-            "n_samples_fit": self.n_samples_fit,
-            "variance_threshold": self.variance.threshold,
-            "correlation_threshold": self.correlation.threshold,
-            "features_in": list(self.variance.feature_names),
-            "features_kept": list(self.variance.kept),
-            "features_removed_constant": list(self.variance.removed),
-            "variation": dict(self.variance.variances),
-            "correlation": self.correlation.as_dict(),
-        }
-
-
-def fit_prefilter(
-    X: object,
-    feature_names: Sequence[str],
-    *,
-    variance_threshold: float = DEFAULT_VARIANCE_THRESHOLD,
-    correlation_threshold: float = DEFAULT_CORRELATION_THRESHOLD,
-) -> Prefilter:
-    """Fit the unsupervised pre-filter on one block (training data only).
-
-    Order matters: constant columns are removed first, and the correlation
-    audit runs on the surviving columns, so a constant column can never appear
-    as a "redundant pair" member.
-
-    Args:
-        X: Fitting block; must not include validation or test rows.
-        feature_names: One name per column, original order.
-        variance_threshold: Columns with variance ``<= threshold`` are removed.
-        correlation_threshold: Pairs with ``|r| >= threshold`` are reported
-            (never removed).
-
-    Raises:
-        DatasetError: If ``X`` or ``feature_names`` is invalid.
-        ValueError: On an invalid threshold.
-    """
-    variance = fit_variance_filter(X, feature_names, threshold=variance_threshold)
-    matrix = validate_feature_matrix(X, feature_names)
-    kept_matrix = matrix[:, list(variance.kept_indices)]
-    correlation = correlation_report(
-        kept_matrix, variance.kept, threshold=correlation_threshold
-    )
-    return Prefilter(
-        variance=variance,
-        correlation=correlation,
-        n_samples_fit=matrix.shape[0],
-    )
-
-
-def fit_prefilter_per_fold(
-    X: object,
-    feature_names: Sequence[str],
-    plan: SplitPlan,
-    *,
-    variance_threshold: float = DEFAULT_VARIANCE_THRESHOLD,
-    correlation_threshold: float = DEFAULT_CORRELATION_THRESHOLD,
-) -> tuple[Prefilter, ...]:
-    """Fit one pre-filter per inner fold, using only that fold's training rows.
-
-    The external test block is never used: it is not passed to any ``fit``.
-    The returned tuple follows ``plan.folds`` order, so the same plan reused
-    across candidates guarantees identical fold membership and identical
-    pre-filters.
-
-    Raises:
-        DatasetError: If ``X`` is invalid or has fewer rows than the plan needs.
-        ValueError: On an invalid threshold or plan index.
-    """
-    matrix = validate_feature_matrix(X, feature_names)
-    filters: list[Prefilter] = []
-    for fold in plan.folds:
-        if fold.train.size == 0:
-            raise ValueError(f"{fold.name} has an empty training block.")
-        if fold.train.max() >= matrix.shape[0]:
-            raise ValueError(
-                f"{fold.name} training index {int(fold.train.max())} is outside the "
-                f"{matrix.shape[0]} rows of X."
-            )
-        filters.append(
-            fit_prefilter(
-                matrix[fold.train],
-                feature_names,
-                variance_threshold=variance_threshold,
-                correlation_threshold=correlation_threshold,
-            )
-        )
-    return tuple(filters)

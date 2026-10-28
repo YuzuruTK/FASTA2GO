@@ -9,15 +9,10 @@ import pytest
 
 from protein_database.ml.dataset import DatasetError
 from protein_database.ml.prefilter import (
-    CorrelatedPair,
-    Prefilter,
     VarianceFilter,
     correlation_report,
-    fit_prefilter,
-    fit_prefilter_per_fold,
     fit_variance_filter,
 )
-from protein_database.ml.splits import make_group_split_plan
 
 NAMES = ("f_const", "f_var", "f_dup", "f_neg")
 
@@ -228,111 +223,3 @@ def test_correlation_report_serialises_for_audit() -> None:
     assert payload["constant_columns"] == ["f_const"]
     assert len(payload["matrix"]) == 4
     json.dumps(payload)  # must be JSON-serialisable
-
-
-# ---------------------------------------------------------------------------
-# Pre-filter bundle
-# ---------------------------------------------------------------------------
-
-
-def test_prefilter_report_records_parameters_and_columns() -> None:
-    prefilter = fit_prefilter(
-        _matrix(),
-        NAMES,
-        variance_threshold=0.0,
-        correlation_threshold=0.99,
-    )
-    report = prefilter.report()
-
-    assert report["n_samples_fit"] == 6
-    assert report["variance_threshold"] == 0.0
-    assert report["correlation_threshold"] == 0.99
-    assert report["features_removed_constant"] == ["f_const"]
-    assert report["features_kept"] == ["f_var", "f_dup", "f_neg"]
-    assert report["correlation"]["threshold"] == 0.99
-    json.dumps(report)  # must be JSON-serialisable
-
-
-def test_prefilter_correlation_only_sees_surviving_columns() -> None:
-    prefilter = fit_prefilter(_matrix(), NAMES)
-    assert prefilter.correlation.feature_names == ("f_var", "f_dup", "f_neg")
-    assert prefilter.correlation.constant_columns == ()
-
-
-def test_prefilter_transform_delegates_to_the_variance_filter() -> None:
-    prefilter = fit_prefilter(_matrix(), NAMES)
-    assert prefilter.transform(_matrix(3)).shape == (3, 3)
-
-
-def test_prefilter_is_deterministic() -> None:
-    first = fit_prefilter(_matrix(), NAMES, correlation_threshold=0.95)
-    second = fit_prefilter(_matrix(), NAMES, correlation_threshold=0.95)
-    assert first.report() == second.report()
-
-
-def test_prefilter_accepts_an_aligned_dataset_block() -> None:
-    from protein_database.ml.dataset import (
-        DatasetReport,
-        ProteinDataset,
-        ProteinKey,
-    )
-
-    keys = tuple(
-        ProteinKey(f"P0000{index}", f"sp|P0000{index}|X", "test.fasta")
-        for index in range(1, 5)
-    )
-    dataset = ProteinDataset(
-        keys=keys,
-        X=_matrix(4),
-        y=np.zeros((4, 1), dtype=bool),
-        feature_names=NAMES,
-        label_names=("GO:0003824",),
-        report=DatasetReport(4, (), (), (), {"GO:0003824": 0}, 0),
-    )
-    prefilter = fit_prefilter(dataset.X, dataset.feature_names)
-    assert prefilter.variance.removed == ("f_const",)
-    assert prefilter.transform(dataset.X).shape == (4, 3)
-
-
-# ---------------------------------------------------------------------------
-# Per-fold fitting (leakage)
-# ---------------------------------------------------------------------------
-
-GROUPS = np.repeat(np.arange(12), 3)
-
-
-def test_per_fold_fits_only_on_that_fold_training_rows() -> None:
-    plan = make_group_split_plan(GROUPS, seed=0)
-    matrix = np.zeros((GROUPS.size, 2))
-    matrix[:, 0] = np.arange(GROUPS.size, dtype=float)
-    matrix[plan.folds[0].validation, 1] = 1.0  # varies only outside fold 0's train
-
-    filters = fit_prefilter_per_fold(matrix, ("f_var", "f_fold"), plan)
-
-    assert len(filters) == plan.n_folds
-    assert filters[0].variance.removed == ("f_fold",)
-    assert filters[0].variance.kept == ("f_var",)
-    assert "f_fold" in filters[1].variance.kept
-    for prefilter, fold in zip(filters, plan.folds):
-        assert prefilter.n_samples_fit == fold.train.size
-
-
-def test_per_fold_prefilters_ignore_the_test_block() -> None:
-    plan = make_group_split_plan(GROUPS, seed=0)
-    base = np.random.default_rng(0).normal(size=(GROUPS.size, 3))
-
-    clean = fit_prefilter_per_fold(base, ("a", "b", "c"), plan)
-    tampered = base.copy()
-    tampered[plan.test, :] = 1e6  # the external test block is left out of every fit
-    dirty = fit_prefilter_per_fold(tampered, ("a", "b", "c"), plan)
-
-    for left, right in zip(clean, dirty):
-        assert left.variance.kept == right.variance.kept
-        assert left.variance.variances == right.variance.variances
-        assert left.correlation.pairs == right.correlation.pairs
-
-
-def test_per_fold_rejects_indices_outside_the_matrix() -> None:
-    plan = make_group_split_plan(GROUPS, seed=0)
-    with pytest.raises(ValueError, match="outside"):
-        fit_prefilter_per_fold(np.zeros((10, 1)), ("a",), plan)

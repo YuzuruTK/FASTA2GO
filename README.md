@@ -127,12 +127,15 @@ uv run python scripts/annotate_proteins.py --db proteins.duckdb --cache-dir cach
 | `--older-than-days` | API mode: also refresh annotations older than N days | `None` |
 | `--limit` | API mode: cap the number of local proteins selected | `None` |
 | `--chunk-size` | API mode: accessions per request (max 1000) | `1000` |
-| `--workers` | API mode: concurrent HTTP requests | `4` |
 | `--max-retries` / `--base-delay` | API mode: retry count and initial backoff | `5` / `1.0` |
 
-Accessions UniProt does not return are stored with `status = 'not_found'`, so
-`--only-missing` does not request them again; use `--older-than-days` to retry
-them later.
+Requests are sequential: one batch of up to 1000 accessions is one HTTP call,
+so concurrency was removed. A network error, an unexpected HTTP status or an
+empty body is reported and never written as a missing annotation: the proteins
+keep their current annotation, the command exits non-zero and the same command
+retries them. Accessions UniProt answers for but does not return are stored
+with `status = 'not_found', so `--only-missing` skips them;
+`--older-than-days` retries them later.
 
 
 ### Classify protein functions
@@ -206,23 +209,26 @@ labels to `exports/go_slim/sample/protein_labels.csv` and an auditable
 `exports/go_slim/sample/manifest.json` (sources, hashes, rules, counts,
 coverage, limitations). Re-running with the same sources is byte-identical.
 
-### Compare models on fixed feature subsets
+### Run the experiment
 
-There is no CLI for this yet, and no experiment has been run on the real base.
-The API is meant to be driven after the dataset and the `SplitPlan` exist:
+Everything that selects, tunes or ranks runs on the development rows; the
+feature subsets are built there and then scored with every model on the same
+folds.
 
-```python
-from protein_database.ml.model_comparison import compare_models, subsets_from_outcomes
-from protein_database.ml.models import LogisticConfig, RandomForestConfig
+```bash
+# inspect the data and the split plan without fitting anything
+uv run python scripts/run_experiment.py --limit 50 --dry-run
 
-comparison = compare_models(
-    dataset,
-    plan,
-    subsets=subsets_from_outcomes([all_features, variance, forward, backward]),
-    models=(LogisticConfig(), RandomForestConfig(n_estimators=200)),
-)
-print(comparison.to_json())   # table, not a ranking
+# compare the four strategies with one model per family
+uv run python scripts/run_experiment.py --out exports/experiments/sample
+
+# score one chosen configuration on the external test block, once
+uv run python scripts/run_experiment.py --out exports/experiments/sample \
+    --evaluate-test --test-strategy all_features --test-model logistic_ovr
 ```
+
+See [Experiment flow](#experiment-flow-project-extension) for the steps it runs
+and for what the external-test guarantee actually covers.
 
 ### Run tests
 
@@ -326,16 +332,15 @@ evaluator, so every number follows the same rules:
 - two separate cost counters: `n_estimator_fits` (pipelines fitted, one per
   fold) and `n_binary_fits` (binary models trained inside OvR, per label and
   fold), so the two are never conflated. Wall-clock time and memory are **not**
-  measured here: they belong to the run budget of the experiment layer, and
-  making them part of the report would make it non-reproducible;
+  measured: including them would make the report non-reproducible;
 - failures recorded, not hidden: a missing dependency or a crash becomes a row
   with `error` (or is re-raised with `on_error="raise"`), and non-convergence is
   reported through `converged` plus `non_converged()`.
 
-Feature subsets are supplied by the caller — typically
-`subsets_from_outcomes([all_features_outcome(...), variance_prefilter_outcome(...),
-forward_outcome(...), backward_outcome(...)])` from the previous phase — so the
-subset stays fixed while the model varies. No per-model feature search is done.
+Feature subsets are supplied by the caller. The experiment flow builds them
+with `strategies`/`feature_selection` and passes `{strategy: features}` to
+`compare_models`, so the subset stays fixed while the model varies and no
+per-model feature search is done.
 
 The report (`ModelComparison.as_dict()` / `.to_json()`) is a table, not a
 ranking: it has no "best"/"winner" notion, because no significance test exists
@@ -350,148 +355,83 @@ The following are placeholders chosen for reproducibility, not tuned values:
 `max_features="sqrt"` (forest), `n_estimators=200`, `max_depth=6`,
 `learning_rate=0.3` (xgboost), `class_weight=None` as the default of every
 family, the 0.5 threshold, and the simple mean over folds. Class weighting is
-available in the model configurations and in the experiment catalog
-(`logistic_balanced`, `forest_balanced`), but it is not chosen by default and it
+available in the model configurations, but it is not chosen by default and it
 is **not** evaluated yet. Supervised filtering (`SelectKBest`, chi²) is not
 implemented.
 
-## Experiment orchestration (project extension)
+## Experiment flow (project extension)
 
-`protein_database/ml/experiment_*.py` runs a **plan-then-execute** experiment:
-the tasks are enumerated, costed and rejected *before* anything is fitted, and
-execution only starts when a consumer explicitly asks for it. No real run has
-been performed; every number produced so far comes from synthetic data in the
-test suite.
+`protein_database/ml/experiments.py` is the single flow: build the feature
+subsets on the development rows, then score every (strategy, model) pair on the
+same folds. No real run has been performed; every number produced so far comes
+from synthetic data in the test suite.
 
-### Architecture
+### What runs, and in which order
 
-| Module | Responsibility |
-| --- | --- |
-| `experiment_config` | typed, serialisable configuration; catalog; content-derived ids |
-| `experiment_plan` | enumerates tasks, estimates cost, decides availability, defines states |
-| `experiment_budget` | `RunBudget` limits, `BudgetLedger` observed counters |
-| `experiment_guard` | wraps `X`/`y` so reading a test row raises `TestBlockAccessError` |
-| `experiment_runner` | executes the plan, records states, appends to a JSONL store, builds the report |
-| `experiment_report` | manifest (reproduction record) and final report (JSON) |
+1. `development_block(dataset, plan)` copies the development rows and re-indexes
+   the folds onto the copy. Selection and comparison only ever see that copy.
+2. Each requested strategy produces one subset: `all_features`,
+   `variance_prefilter` (variance filter fitted on each fold training block and
+   intersected over folds), `forward`, `backward`.
+3. Every subset is scored with every model through
+   `model_comparison.compare_models`, so folds, label masks, estimator
+   parameters and the macro-F1 implementation are identical across the table.
+4. The table is printed and, with `--out`, written as `results.json` plus
+   `results.csv`.
 
-Planning and execution never share a data path: `build_execution_plan` reads only
-dataset metadata (shapes, feature and label names, accessions) and the folds'
-index arrays, so `runner.plan()` and `runner.manifest()` are safe to call on the
-real base without training anything.
+Defaults: one configuration per family (`LogisticConfig`,
+`RandomForestConfig`, `XGBoostConfig`), all four strategies, `max_features=10`,
+`min_features=2` for backward elimination, seed 42. Every parameter stays
+configurable through `ExperimentSettings` and the CLI flags.
 
-### Catalog (moderate, provisional)
+### The external test block
 
-| Label | Family | Distinguishing parameter |
-| --- | --- | --- |
-| `logistic_base` | logistic | the frozen defaults |
-| `logistic_balanced` | logistic | `class_weight="balanced"` |
-| `logistic_C0.1` | logistic | `C=0.1` (stronger L2) |
-| `forest_base` | random forest | `n_estimators=200`, `max_features="sqrt"` |
-| `forest_balanced` | random forest | `class_weight="balanced"` |
-| `forest_shallow` | random forest | `max_depth=8` |
-| `xgboost_base` | xgboost | optional dependency, not installed |
+- `development_block` physically removes the test rows before any selection, so
+  the selection and comparison code cannot read them: there is nothing to guard
+  and nothing to intercept.
+- `evaluate_external(dataset, plan, features, model)` is the only function that
+  indexes `plan.test`, and `run_experiment` never calls it. It fits on the
+  development rows and scores the test block once.
+- The CLI evaluates it only with `--evaluate-test --test-strategy ...
+  --test-model ...`: the configuration is chosen on development numbers and the
+  script never picks one automatically.
+- Honest limit: `validate_dataset` checks shapes, finiteness and duplicate keys
+  on the full matrix **before** the split, so it does inspect test values; it
+  never uses them to choose, rank or tune anything.
 
-Each entry changes one justified parameter relative to its family baseline, so a
-difference in score stays interpretable. The catalog is a candidate list, **not**
-a claim about good hyperparameters. Expected size:
+### Result reuse
 
-```
-n_tasks = len(models) x len(strategies) + len(selection) = 7 x 4 + 2 = 30
-```
+`results.json` stores the settings, the sources and a SHA-256 of the effective
+`X` and `y` values plus the settings. A later run reuses a stored strategy only
+when that fingerprint matches, so changing features, labels, sample or
+parameters starts a new run instead of mixing rows.
 
-(28 evaluations + one forward and one backward selection task.) The four
-XGBoost tasks are planned as `skipped_unavailable_dependency` while the package
-is absent; nothing else is blocked, and XGBoost is never simulated with another
-estimator. Balancing is only offered where the implementation supports it, which
-is why `XGBoostConfig` has no balancing entry: it exposes no such parameter here.
+### Grouping
 
-### Identifiers
+Groups come from `dataset.load_sequence_groups`, that is `md5(sequence)` in the
+database. **Only identical sequences are grouped**: homologous proteins whose
+sequences differ are not clustered together, and no alignment or clustering is
+performed. `validate_split_plan` re-checks that no fold shares a sample or a
+group with its training block and that the external test block shares neither
+with any fold.
 
-* model configuration → `<family>/<12 hex>` from the effective parameters
-  (defaults included, environment-dependent fields excluded);
-* selection configuration → `forward/...` or `backward/...`;
-* whole configuration → `config_id`; plan → `plan_id`; task → 20 hex;
-* identical configurations are deduplicated (first label kept, the drop is
-  recorded in `deduplicated_labels`); different configurations of one family
-  stay distinct, which is what allows a within-family comparison.
+### Running it
 
-No identifier, and no scheduling decision, depends on the external test block:
-the folds id covers only `fold.train`/`fold.validation`, and the test indices are
-not part of any payload.
+```bash
+# inspect the data and the plan without fitting anything
+uv run python scripts/run_experiment.py --limit 50 --dry-run
 
-### Budget: what is guaranteed and what is only estimated
+# compare strategies and models on the development rows
+uv run python scripts/run_experiment.py --out exports/experiments/sample
 
-| Limit | Status |
-| --- | --- |
-| `max_tasks` | guaranteed: a task that would exceed it never starts |
-| `max_fold_evaluations` | guaranteed against the *estimate* of each task |
-| `max_estimator_fits` | guaranteed against the estimate; binary fits are recorded but not budgeted |
-| `max_selection_candidate_evaluations` | guaranteed against an upper bound of the search |
-| `max_seconds` | **cooperative**: checked before each task, never interrupts a running fit |
-| memory | **not** budgeted; no portable hard limit is promised |
-
-Estimates are upper bounds (`exact: false`) derived from folds, features, labels
-and selection parameters; observed costs come from the evaluation and selection
-objects that actually ran. A selection task costs `candidate evaluations x folds`.
-Because scikit-learn estimators cannot be cancelled safely, no `cancelled` state
-exists: a task either finishes or is never started.
-
-### States
-
-`planned`, `completed`, `failed`, `skipped_budget`,
-`skipped_unavailable_dependency`, `skipped_dependency_failure`. A failed
-selection always leaves its dependent evaluations `skipped_dependency_failure`
-with no substitute subset; a `ConvergenceWarning` keeps the task `completed` with
-`converged: false` and a warning, never `failed`. With
-`FailurePolicy(on_task_error="abort")` the remaining tasks stay `planned` with an
-explicit note - they are not reported as executed, skipped or cancelled.
-
-### Inspecting a plan without executing it
-
-```python
-from protein_database.ml.experiment_budget import RunBudget
-from protein_database.ml.experiment_config import default_experiment_config
-from protein_database.ml.experiment_runner import ExperimentRunner
-
-config = default_experiment_config()
-runner = ExperimentRunner(config, dataset, split_plan, budget=RunBudget(max_tasks=12))
-
-plan = runner.plan()          # enumerates 30 tasks, fits nothing
-print(plan.as_dict())         # task ids, order, estimates, availability, reasons
-manifest = runner.manifest()  # protocol, configuration, folds, versions, policy
-
-# execution is a separate, explicit step (not performed in this phase):
-# runner.run(store_path="exports/experiments/run.jsonl")
+# score one chosen configuration on the external test block, once
+uv run python scripts/run_experiment.py --out exports/experiments/sample \
+    --evaluate-test --test-strategy all_features --test-model logistic_ovr
 ```
 
-`runner.run(...)` appends one JSON line per finished task (a header plus task
-records), so an interrupted run keeps its partial results. On resume only
-`completed` records whose `protocol_version`, `config_id`, `dataset_id`,
-`folds_id` and `plan_id` all match are reused; anything else raises
-`ResumeMismatchError`. The manifest and the final report are written next to the
-store as `<store>.manifest.json` and `<store>.report.json`.
-
-The guard is not a post-hoc check: the runner hands the evaluators a dataset
-whose `X`/`y` raise `TestBlockAccessError` on any row selection that intersects
-`plan.test`, so an accidental read fails in the test that causes it.
-
-### Determinism and its limits
-
-Identical configuration + dataset metadata + folds give an identical `plan_id`,
-identical task ids and identical task order; two runs of the same plan produce
-identical result payloads (per-round wall-clock times are dropped from the stored
-selection history). Reproducibility ends where the libraries end: identical
-floating-point scores across machines or scikit-learn versions are not promised.
-`created_at` and the environment versions are metadata and never part of an
-identifier.
-
-### Still pending approval
-
-Real execution on the base, the external-test evaluation protocol, the catalog
-values above, the selection ceilings (`max_features=10`, `min_features=2` for
-backward elimination), the 0.5 threshold, the simple mean over folds, class
-weighting as a scientific choice, and every open decision from the previous
-phases (PF1-PF5, FS1-FS8, BD1-BD6, R-DS5, R-GO1/2).
+The table is a comparison, not a ranking: no significance test exists, so no
+best-model claim is produced. XGBoost rows are reported as errors while the
+optional package is absent; the model is never replaced by another estimator.
 
 ## Database Schema
 
@@ -591,14 +531,9 @@ FASTA2GO/
 │       ├── prefilter.py            # Per-fold variance filter + correlation report
 │       ├── models.py               # Model configs (logistic, forest, optional xgboost)
 │       ├── feature_selection.py    # Forward selection / backward elimination
-│       ├── strategies.py           # 4 strategies and their comparison
+│       ├── strategies.py           # Strategy names (all, variance, forward, backward)
 │       ├── model_comparison.py     # Model x feature-subset comparison report
-│       ├── experiment_config.py    # Experiment configuration, catalog, ids
-│       ├── experiment_plan.py      # Task enumeration + cost estimates
-│       ├── experiment_budget.py    # RunBudget limits and observed counters
-│       ├── experiment_guard.py     # Test-block access guard (raises loudly)
-│       ├── experiment_runner.py    # Plan-then-execute, states, JSONL store
-│       ├── experiment_report.py    # Manifest + final report builders
+│       ├── experiments.py          # Development-only experiment flow + results
 │       └── go_slim.py              # GO Slim MF vocabulary, propagation, mapping
 ├── scripts/
 │   ├── lexicon.py                  # Shared word lists + tokenizer
@@ -608,6 +543,7 @@ FASTA2GO/
 │   ├── verify_completeness.py      # Data completeness report
 │   ├── query_example.py            # Example DuckDB queries
 │   ├── annotate_proteins.py        # UniProt enrichment CLI
+│   ├── run_experiment.py           # Feature-selection x model comparison CLI
 │   └── build_go_slim_mapping.py    # GO Slim MF labels (auditable sample)
 ├── tests/
 │   ├── __init__.py

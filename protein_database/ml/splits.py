@@ -10,35 +10,20 @@ Spike S0 (findings F1 and F4), measured on scikit-learn 1.9.1:
 * ``StratifiedKFold`` and ``StratifiedGroupKFold`` reject multilabel targets.
 
 Consequence for this project: evaluation must always receive splits that were
-built from sequence groups beforehand, and ``cv=int`` must be refused instead of
-silently accepted. These guards make that impossible to get wrong by accident.
+built from sequence groups beforehand. :func:`make_group_split_plan` builds them
+and :func:`validate_split_plan` re-checks them: no fold shares a sample or a
+group with its training block, the external test block shares neither with any
+fold, and every development sample is validated exactly once.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
 
 
-def reject_non_group_cv(cv: object) -> None:
-    """Refuse ``cv`` forms that are not an explicit list of grouped splits.
-
-    ``None``, integers and strings are rejected. For a multilabel target an
-    integer ``cv`` becomes unstratified ``KFold`` (Spike S0, F1), which may put
-    homologous/duplicate sequences on both sides of the split.
-
-    Raises:
-        ValueError: Always, for these forms; the message explains why.
-    """
-    if cv is None or isinstance(cv, (int, np.integer, str)):
-        raise ValueError(
-            "cv must be an explicit list of (train_indices, test_indices) pairs "
-            f"built from sequence groups; got {cv!r}. For multilabel targets "
-            "check_cv(cv=int) resolves to KFold, which is NOT grouped "
-            "(Spike S0, finding F1)."
-        )
 
 
 def assert_group_disjoint(
@@ -66,82 +51,6 @@ def assert_group_disjoint(
         )
 
 
-def validate_group_splits(
-    splits: Iterable[tuple[object, object]],
-    groups: object,
-    *,
-    n_samples: int | None = None,
-) -> tuple[tuple[np.ndarray, np.ndarray], ...]:
-    """Validate pre-computed grouped splits and return them as index pairs.
-
-    Checks, per split: non-empty disjoint train/test indices, indices within
-    range and no shared group. A cross-validator object (e.g. ``GroupKFold``)
-    is rejected: it needs ``groups`` at ``split`` time, which the sklearn
-    selection wrappers cannot pass (Spike S0, F4).
-
-    Args:
-        splits: Iterable of ``(train_indices, test_indices)`` pairs.
-        groups: Group label per sample, same length as the data.
-        n_samples: Optional upper bound used to reject out-of-range indices.
-
-    Returns:
-        Tuple of validated ``(train, test)`` index arrays.
-
-    Raises:
-        ValueError: On empty input, wrong pair shape, overlapping indices,
-            out-of-range indices or shared groups.
-    """
-    group_array = np.asarray(groups)
-    if group_array.ndim != 1:
-        raise ValueError(f"groups must be 1-D; got shape {group_array.shape}.")
-
-    try:
-        pairs = [
-            (np.asarray(train, dtype=int), np.asarray(test, dtype=int))
-            for train, test in splits
-        ]
-    except TypeError as exc:
-        raise ValueError(
-            "splits must be an iterable of (train, test) index pairs; a "
-            f"cross-validator object such as {type(splits).__name__} is not "
-            "accepted because evaluation wrappers cannot pass 'groups'."
-        ) from exc
-
-    if not pairs:
-        raise ValueError("splits is empty; nothing can be evaluated.")
-
-    for position, (train, test) in enumerate(pairs):
-        if train.ndim != 1 or test.ndim != 1:
-            raise ValueError(
-                f"split {position} must contain 1-D index arrays; got shapes "
-                f"{train.shape} and {test.shape}."
-            )
-        if train.size == 0 or test.size == 0:
-            raise ValueError(f"split {position} has an empty side.")
-        for side_name, indices in (("train", train), ("test", test)):
-            if (indices < 0).any():
-                raise ValueError(f"split {position} has negative {side_name} indices.")
-            if n_samples is not None and (indices >= n_samples).any():
-                raise ValueError(
-                    f"split {position} has {side_name} indices >= n_samples "
-                    f"({n_samples})."
-                )
-            if indices.max() >= group_array.size:
-                raise ValueError(
-                    f"split {position} has {side_name} indices beyond the "
-                    f"{group_array.size} available groups."
-                )
-        shared_indices = np.intersect1d(train, test)
-        if shared_indices.size:
-            raise ValueError(
-                f"split {position} shares {shared_indices.size} sample index(es) "
-                "between train and test."
-            )
-        assert_group_disjoint(
-            group_array[train], group_array[test], name=f"split {position}"
-        )
-
-    return tuple(pairs)
 
 
 @dataclass(frozen=True)
@@ -339,6 +248,11 @@ def validate_split_plan(
             )
         assert_group_disjoint(
             group_array[fold.validation], group_array[plan.test], name=f"{fold.name} vs test"
+        )
+        assert_group_disjoint(
+            group_array[fold.train],
+            group_array[plan.test],
+            name=f"{fold.name} train vs test",
         )
         validated.append(fold.validation)
 

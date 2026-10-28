@@ -5,6 +5,9 @@ Usage:
     uv run python scripts/annotate_proteins.py --db proteins.duckdb
     uv run python scripts/annotate_proteins.py --db proteins.duckdb --source cache
     uv run python scripts/annotate_proteins.py --db proteins.duckdb --source api --only-missing
+
+This script enriches the annotations of proteins that are already in the
+database. It does not download FASTA sequences.
 """
 
 import argparse
@@ -16,6 +19,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from protein_database.uniprot import MAX_ACCESSIONS_PER_REQUEST, annotate_database
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -32,9 +36,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--source", type=str, choices=["bulk", "cache", "api"], default="bulk",
-        help="'bulk' downloads the reviewed-proteome snapshot; 'cache' replays "
-        "local TSV files only; 'api' fetches only the missing/stale "
-        "accessions from the UniProt REST API. Default: bulk.",
+        help="bulk downloads the reviewed-proteome snapshot; cache replays local "
+        "TSV files only; api fetches only the missing or stale accessions from "
+        "the UniProt REST API. Default: bulk.",
     )
     parser.add_argument(
         "--refresh-snapshot", action="store_true",
@@ -46,7 +50,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--older-than-days", type=int, default=None,
-        help="API mode: also refresh annotations older than N days.",
+        help="API mode: also refresh annotations older than N days. This is also "
+        "how proteins recorded as not_found are retried.",
     )
     parser.add_argument(
         "--limit", type=int, default=None,
@@ -58,12 +63,9 @@ def main() -> None:
         f"(default: {MAX_ACCESSIONS_PER_REQUEST}).",
     )
     parser.add_argument(
-        "--workers", type=int, default=4,
-        help="API mode: concurrent HTTP requests (default: 4).",
-    )
-    parser.add_argument(
         "--max-retries", type=int, default=5,
-        help="API mode: retries per request on 429/5xx (default: 5).",
+        help="API mode: retries per request on 429/5xx and network errors "
+        "(default: 5).",
     )
     parser.add_argument(
         "--base-delay", type=float, default=1.0,
@@ -74,14 +76,12 @@ def main() -> None:
     if not 1 <= args.chunk_size <= MAX_ACCESSIONS_PER_REQUEST:
         parser.error(
             f"--chunk-size must be between 1 and {MAX_ACCESSIONS_PER_REQUEST} "
-            "(UniProt's per-request limit)."
+            "(the UniProt per-request limit)."
         )
     if args.source != "api" and (
         args.only_missing or args.older_than_days is not None or args.limit
     ):
-        parser.error(
-            "--only-missing/--older-than-days/--limit require --source api."
-        )
+        parser.error("--only-missing/--older-than-days/--limit require --source api.")
 
     db_path = Path(args.db)
     if not db_path.exists():
@@ -107,10 +107,11 @@ def main() -> None:
             )
             if enabled
         ]
-        print(f"  Select   : {', '.join(filters) if filters else 'all'}")
+        selector = ", ".join(filters) if filters else "all"
+        print(f"  Select   : {selector}")
         print(
-            f"  Requests : chunk={args.chunk_size}, workers={args.workers}, "
-            f"retries={args.max_retries}"
+            f"  Requests : chunk={args.chunk_size}, retries={args.max_retries}, "
+            f"backoff={args.base_delay}s"
         )
     print("-" * 60)
 
@@ -124,30 +125,43 @@ def main() -> None:
             older_than_days=args.older_than_days,
             limit=args.limit,
             chunk_size=args.chunk_size,
-            workers=args.workers,
             max_retries=args.max_retries,
             base_delay=args.base_delay,
         )
     except Exception as exc:  # noqa: BLE001
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
-
+    mode = summary["mode"]
+    failed = summary["failed"]
+    total = summary["total_local_proteins"]
+    handled = summary["accessions"]
+    annotated = summary["annotated"]
+    missing = summary["missing_function"]
+    not_found = summary["not_found"]
+    requests_made = summary["http_requests"]
+    coverage = summary["function_coverage_pct"]
     print("=" * 60)
     print("  UniProt Annotation Summary")
     print("=" * 60)
-    print(f"  {'Mode':<22}: {summary['mode']}")
-    print(f"  {'Total local proteins':<22}: {summary['total_local_proteins']:,}")
-    print(f"  {'Accessions handled':<22}: {summary['accessions']:,}")
-    print(f"  {'Annotated rows':<22}: {summary['annotated']:,}")
-    print(f"  {'Missing Function':<22}: {summary['missing_function']:,}")
-    print(f"  {'Not found':<22}: {summary['not_found']:,}")
-    print(f"  {'HTTP requests':<22}: {summary['http_requests']:,}")
-    if summary["failed"]:
-        print(f"  {'Failed accessions':<22}: {summary['failed']:,} (retried next run)")
-    print(f"  {'Function coverage':<22}: {summary['function_coverage_pct']:.2f}%")
+    print(f"  Mode                  : {mode}")
+    print(f"  Total local proteins  : {total:,}")
+    print(f"  Accessions handled    : {handled:,}")
+    print(f"  Annotated rows        : {annotated:,}")
+    print(f"  Missing Function      : {missing:,}")
+    print(f"  Not found             : {not_found:,}")
+    print(f"  HTTP requests         : {requests_made:,}")
+    print(f"  Function coverage     : {coverage:.2f}%")
     print("=" * 60)
+
+    if failed:
+        print(
+            f"Error: {failed:,} accession(s) could not be fetched. "
+            "Nothing was written for them and they are not marked as not_found; "
+            "run the same command again to retry.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-

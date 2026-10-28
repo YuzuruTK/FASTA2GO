@@ -141,6 +141,16 @@ def test_validate_rejects_a_shared_group_between_train_and_validation() -> None:
         validate_split_plan(plan, GROUPS)
 
 
+def test_validate_rejects_a_training_group_shared_with_the_test_block() -> None:
+    # index 0 belongs to group 0, which is also the test block
+    plan = _manual_plan(
+        [0, 1, 2],
+        [Fold(0, np.array([0, 3, 4, 5, 6, 7, 8, 9, 10, 11]), np.arange(12, 36))],
+    )
+    with pytest.raises(ValueError, match="train vs test"):
+        validate_split_plan(plan, GROUPS)
+
+
 def test_validate_rejects_duplicate_indices() -> None:
     plan = _manual_plan(
         [0, 1, 2],

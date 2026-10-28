@@ -2,8 +2,8 @@
 
 The design goal is isolation: to compare models, the feature subset must stay
 fixed, and to compare subsets, the model must stay fixed. Nothing here searches
-features per model - the subsets come from the Phase 7 strategies
-(:func:`subsets_from_outcomes`) and each (model, subset) pair is scored with
+features per model: the caller passes ``{label: feature names}`` and each
+(model, subset) pair is scored with
 :func:`protein_database.ml.feature_selection.evaluate_feature_subset`, which is
 the same code path used by Forward Selection and Backward Elimination:
 
@@ -39,7 +39,6 @@ from protein_database.ml.feature_selection import (
 )
 from protein_database.ml.models import SUPPORTED_MODEL_CONFIGS, describe_estimator
 from protein_database.ml.splits import SplitPlan
-from protein_database.ml.strategies import StrategyOutcome
 
 INHERENT_LIMITS_NOTE = (
     "Synthetic runs validate the infrastructure only: they are not evidence "
@@ -51,34 +50,13 @@ NO_WINNER_NOTE = (
 )
 FIXED_SUBSET_NOTE = (
     "Feature subsets are fixed across models (no per-model feature search); "
-    "variance filtering, when present, came from the Phase 7 strategy."
+    "variance filtering, when present, was applied when the subset was built."
 )
 DEFAULT_NOTES = (FIXED_SUBSET_NOTE, INHERENT_LIMITS_NOTE, NO_WINNER_NOTE)
 
 ON_ERROR_RECORD = "record"
 ON_ERROR_RAISE = "raise"
 ON_ERROR_MODES = (ON_ERROR_RECORD, ON_ERROR_RAISE)
-
-
-def subsets_from_outcomes(
-    outcomes: Sequence[StrategyOutcome],
-) -> dict[str, tuple[str, ...]]:
-    """Turn Phase 7 strategy outcomes into ``{subset_label: features}``.
-
-    The strategies already guarantee that each final subset was scored through
-    :func:`evaluate_feature_subset`, so reusing their ``selected`` tuples keeps
-    the feature sets identical while the model varies.
-    """
-    subsets: dict[str, tuple[str, ...]] = {}
-    for outcome in outcomes:
-        if outcome.strategy in subsets:
-            raise ValueError(f"Duplicate strategy {outcome.strategy!r} in outcomes.")
-        if not outcome.selected:
-            raise ValueError(f"Strategy {outcome.strategy!r} has an empty subset.")
-        subsets[outcome.strategy] = tuple(outcome.selected)
-    if not subsets:
-        raise ValueError("outcomes is empty: nothing to compare.")
-    return subsets
 
 
 def _validate_subsets(
@@ -355,8 +333,7 @@ def compare_models(
         dataset: Aligned features and labels; validated before anything runs.
         plan: The shared ``SplitPlan``. Only its validation folds are used;
             ``plan.test`` is never indexed.
-        subsets: ``{label: feature names}``, typically from
-            :func:`subsets_from_outcomes`. Kept fixed across models.
+        subsets: ``{label: feature names}``. Kept fixed across models.
         models: Model configurations (:class:`LogisticConfig`,
             :class:`RandomForestConfig`, :class:`XGBoostConfig`). Two
             configurations of the same family are rejected because they would

@@ -22,6 +22,7 @@ from __future__ import annotations
 import math
 import time
 import warnings
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -35,7 +36,7 @@ from protein_database.ml.evaluation import (
 )
 from protein_database.ml.models import LogisticConfig, build_estimator, describe_estimator
 from protein_database.ml.prefilter import fit_variance_filter
-from protein_database.ml.splits import Fold, SplitPlan, split_coverage
+from protein_database.ml.splits import SplitPlan, split_coverage
 
 #: Column order of ``selection_history.csv`` (stable, auditable artifact).
 HISTORY_COLUMNS = (
@@ -563,14 +564,89 @@ def _score_names(
     )
 
 
-def _evaluate_candidate(
-    selected: tuple[str, ...],
-    candidate: str,
+@dataclass(frozen=True)
+class _RoundScan:
+    """Outcome of scoring every candidate of one greedy round."""
+
+    winner: str
+    score: float
+    spread: float
+    fold_scores: tuple[FoldScore, ...]
+    n_model_fits: int
+    converged: bool
+    tied: tuple[str, ...]
+    candidates: tuple[CandidateScore, ...]
+    evaluations: int
+    aborted: bool
+
+
+def _scan_round(
+    names: list[str],
+    build_subset: Callable[[str], tuple[str, ...]],
     contexts: list[_FoldContext],
-    config: ForwardSelectionConfig,
-) -> tuple[float, float, tuple[FoldScore, ...], int, bool]:
-    """Score ``selected + candidate``, the forward-selection candidate rule."""
-    return _score_names((*selected, candidate), contexts, config)
+    settings: ForwardSelectionConfig,
+    evaluations: int,
+) -> _RoundScan | None:
+    """Score every candidate of one round and pick the best (ties: first).
+
+    Shared by both directions: forward selection builds ``selected + name`` and
+    backward elimination builds ``remaining - name``, so the candidate scoring,
+    the tie rule and the evaluation budget live in exactly one place.
+
+    Returns ``None`` when there is no candidate; ``aborted`` is set when
+    ``max_evaluations`` is reached in the middle of the round.
+    """
+    scored: list[CandidateScore] = []
+    details: dict[str, tuple[tuple[FoldScore, ...], int, bool]] = {}
+    for name in names:
+        if (
+            settings.max_evaluations is not None
+            and evaluations >= settings.max_evaluations
+        ):
+            return _RoundScan(
+                winner="",
+                score=0.0,
+                spread=0.0,
+                fold_scores=(),
+                n_model_fits=0,
+                converged=True,
+                tied=(),
+                candidates=tuple(scored),
+                evaluations=evaluations,
+                aborted=True,
+            )
+        score, spread, fold_scores, fits, converged = _score_names(
+            build_subset(name), contexts, settings
+        )
+        evaluations += len(contexts)
+        scored.append(CandidateScore(name, score, spread))
+        details[name] = (fold_scores, fits, converged)
+    if not scored:
+        return None
+
+    best = max(candidate.score for candidate in scored)
+    tied = tuple(
+        candidate.feature
+        for candidate in scored
+        if abs(candidate.score - best) <= TIE_TOLERANCE
+    )
+    winner = tied[0]
+    fold_scores, fits, converged = details[winner]
+    spread = next(
+        candidate.score_std for candidate in scored if candidate.feature == winner
+    )
+    return _RoundScan(
+        winner=winner,
+        score=best,
+        spread=spread,
+        fold_scores=fold_scores,
+        n_model_fits=fits,
+        converged=converged,
+        tied=tied,
+        candidates=tuple(scored),
+        evaluations=evaluations,
+        aborted=False,
+    )
 
 
 @dataclass(frozen=True)
@@ -614,18 +690,25 @@ class ForwardSelectionResult:
 
 
 def _validate_plan_indices(plan: SplitPlan, n_samples: int) -> None:
-    blocks = [("test", plan.test)]
+    """Check that every fold index is inside the dataset.
+
+    The ``test`` block is deliberately not inspected here: selection and
+    evaluation run on a development-only plan whose test block is empty, and the
+    external block is validated once, on the full plan, by
+    :func:`protein_database.ml.splits.validate_split_plan`.
+    """
     for fold in plan.folds:
-        blocks.append((f"{fold.name}/train", fold.train))
-        blocks.append((f"{fold.name}/validation", fold.validation))
-    for name, indices in blocks:
-        if indices.size == 0:
-            raise ValueError(f"{name} is empty.")
-        if indices.min() < 0 or indices.max() >= n_samples:
-            raise ValueError(
-                f"{name} has indices outside [0, {n_samples}); got "
-                f"[{int(indices.min())}, {int(indices.max())}]."
-            )
+        for name, indices in (
+            (f"{fold.name}/train", fold.train),
+            (f"{fold.name}/validation", fold.validation),
+        ):
+            if indices.size == 0:
+                raise ValueError(f"{name} is empty.")
+            if indices.min() < 0 or indices.max() >= n_samples:
+                raise ValueError(
+                    f"{name} has indices outside [0, {n_samples}); got "
+                    f"[{int(indices.min())}, {int(indices.max())}]."
+                )
 
 
 def run_forward_selection(
@@ -690,57 +773,32 @@ def run_forward_selection(
 
     while remaining and len(recorder.selected) < settings.max_features:
         started = time.perf_counter()
-        round_candidates: list[CandidateScore] = []
-        details: dict[str, tuple[tuple[FoldScore, ...], int, bool]] = {}
-        aborted = False
-
-        for name in remaining:
-            if (
-                settings.max_evaluations is not None
-                and evaluations >= settings.max_evaluations
-            ):
-                aborted = True
-                break
-            score, spread, fold_scores, fits, converged = _evaluate_candidate(
-                recorder.selected, name, contexts, settings
-            )
-            evaluations += len(contexts)
-            round_candidates.append(CandidateScore(name, score, spread))
-            details[name] = (fold_scores, fits, converged)
-
-        if aborted:
+        scan = _scan_round(
+            remaining,
+            lambda name: (*recorder.selected, name),
+            contexts,
+            settings,
+            evaluations,
+        )
+        if scan is None:
+            break
+        evaluations = scan.evaluations
+        if scan.aborted:
             recorder.stop(STOP_BUDGET)
             break
-        if not round_candidates:
-            break
-
-        best = max(candidate.score for candidate in round_candidates)
-        tied = tuple(
-            candidate.feature
-            for candidate in round_candidates
-            if abs(candidate.score - best) <= TIE_TOLERANCE
-        )
-        winner = tied[0]
-        winner_folds, winner_fits, winner_converged = details[winner]
-        winner_spread = next(
-            candidate.score_std
-            for candidate in round_candidates
-            if candidate.feature == winner
-        )
-
         round_ = recorder.record(
-            winner,
-            best,
-            tied_candidates=tied,
-            n_candidates_evaluated=len(round_candidates),
-            n_model_fits=winner_fits,
-            converged=winner_converged,
+            scan.winner,
+            scan.score,
+            tied_candidates=scan.tied,
+            n_candidates_evaluated=len(scan.candidates),
+            n_model_fits=scan.n_model_fits,
+            converged=scan.converged,
             elapsed_seconds=time.perf_counter() - started,
-            score_std=winner_spread,
-            fold_scores=winner_folds,
-            candidates=tuple(round_candidates),
+            score_std=scan.spread,
+            fold_scores=scan.fold_scores,
+            candidates=scan.candidates,
         )
-        remaining.remove(winner)
+        remaining.remove(scan.winner)
         if not round_.accepted:
             break
 
@@ -1071,75 +1129,50 @@ def run_backward_elimination(
 
     while stopped is None and len(remaining) > min_features:
         started = time.perf_counter()
-        round_candidates: list[CandidateScore] = []
-        details: dict[str, tuple[tuple[FoldScore, ...], int, bool]] = {}
-        aborted = False
-
-        for name in remaining:
-            if (
-                settings.max_evaluations is not None
-                and evaluations >= settings.max_evaluations
-            ):
-                aborted = True
-                break
-            subset = tuple(feature for feature in remaining if feature != name)
-            score, spread, fold_scores, fits, converged = _score_names(
-                subset, contexts, settings
-            )
-            evaluations += len(contexts)
-            round_candidates.append(CandidateScore(name, score, spread))
-            details[name] = (fold_scores, fits, converged)
-
-        if aborted:
-            stopped = STOP_BUDGET
-            break
-        if not round_candidates:
+        scan = _scan_round(
+            remaining,
+            lambda name: tuple(feature for feature in remaining if feature != name),
+            contexts,
+            settings,
+            evaluations,
+        )
+        if scan is None:
             stopped = STOP_NO_CANDIDATES
             break
+        evaluations = scan.evaluations
+        if scan.aborted:
+            stopped = STOP_BUDGET
+            break
 
-        best = max(candidate.score for candidate in round_candidates)
-        tied = tuple(
-            candidate.feature
-            for candidate in round_candidates
-            if abs(candidate.score - best) <= TIE_TOLERANCE
-        )
-        winner = tied[0]
-        winner_folds, winner_fits, winner_converged = details[winner]
-        winner_spread = next(
-            candidate.score_std
-            for candidate in round_candidates
-            if candidate.feature == winner
-        )
-        gain = None if reference is None else best - reference
+        gain = None if reference is None else scan.score - reference
         accepted = gain is None or gain >= settings.min_improvement
-
         round_ = EliminationRound(
             round=len(history) + 1,
-            removed=winner,
-            score=best,
+            removed=scan.winner,
+            score=scan.score,
             reference_score=reference,
             gain=gain,
             accepted=accepted,
-            tied_candidates=tied,
-            n_candidates_evaluated=len(round_candidates),
-            n_model_fits=winner_fits,
-            converged=winner_converged,
+            tied_candidates=scan.tied,
+            n_candidates_evaluated=len(scan.candidates),
+            n_model_fits=scan.n_model_fits,
+            converged=scan.converged,
             elapsed_seconds=time.perf_counter() - started,
             stop_reason=None if accepted else STOP_MIN_IMPROVEMENT,
-            score_std=winner_spread,
-            fold_scores=winner_folds,
-            candidates=tuple(round_candidates),
+            score_std=scan.spread,
+            fold_scores=scan.fold_scores,
+            candidates=scan.candidates,
         )
         history.append(round_)
-        total_fits += winner_fits
+        total_fits += scan.n_model_fits
 
         if not accepted:
             stopped = STOP_MIN_IMPROVEMENT
             break
 
-        remaining.remove(winner)
-        removed.append(winner)
-        reference = best
+        remaining.remove(scan.winner)
+        removed.append(scan.winner)
+        reference = scan.score
         if len(remaining) <= min_features:
             stopped = STOP_MIN_FEATURES
 

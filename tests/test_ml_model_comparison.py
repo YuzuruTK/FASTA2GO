@@ -12,6 +12,7 @@ from protein_database.ml import models as models_module
 from protein_database.ml.dataset import DatasetReport, ProteinDataset, ProteinKey
 from protein_database.ml.feature_selection import (
     ForwardSelectionConfig,
+    eligible_features,
     evaluate_feature_subset,
     run_backward_elimination,
     run_forward_selection,
@@ -22,7 +23,6 @@ from protein_database.ml.model_comparison import (
     ModelComparison,
     ModelEvaluation,
     compare_models,
-    subsets_from_outcomes,
 )
 from protein_database.ml.models import (
     LogisticConfig,
@@ -36,10 +36,6 @@ from protein_database.ml.strategies import (
     STRATEGY_BACKWARD,
     STRATEGY_FORWARD,
     STRATEGY_VARIANCE,
-    all_features_outcome,
-    backward_outcome,
-    forward_outcome,
-    variance_prefilter_outcome,
 )
 
 GROUPS = np.repeat(np.arange(12), 6)
@@ -75,19 +71,16 @@ def _plan(seed: int = 3):
 
 
 def _subsets(dataset: ProteinDataset, plan) -> dict[str, tuple[str, ...]]:
-    """The four Phase 7 strategies, reused as fixed feature subsets."""
+    """The four strategies, built once and then held fixed per model."""
     config = ForwardSelectionConfig(max_features=2)
-    outcomes = [
-        all_features_outcome(dataset, plan, config=config),
-        variance_prefilter_outcome(dataset, plan, config=config),
-        forward_outcome(
-            run_forward_selection(dataset, plan, config=config), dataset, plan
-        ),
-        backward_outcome(
-            run_backward_elimination(dataset, plan, config=config), dataset, plan
-        ),
-    ]
-    return subsets_from_outcomes(outcomes)
+    forward = run_forward_selection(dataset, plan, config=config)
+    backward = run_backward_elimination(dataset, plan, config=config)
+    return {
+        STRATEGY_ALL: dataset.feature_names,
+        STRATEGY_VARIANCE: eligible_features(dataset, plan, config=config),
+        STRATEGY_FORWARD: forward.selection.selected,
+        STRATEGY_BACKWARD: backward.remaining,
+    }
 
 
 def _comparison(dataset=None, plan=None, **kwargs) -> ModelComparison:
@@ -107,7 +100,7 @@ def _comparison(dataset=None, plan=None, **kwargs) -> ModelComparison:
 # ---------------------------------------------------------------------------
 
 
-def test_subsets_from_outcomes_keeps_every_strategy() -> None:
+def test_the_four_strategies_give_four_distinct_subsets() -> None:
     dataset, plan = _dataset(), _plan()
     subsets = _subsets(dataset, plan)
     assert list(subsets) == [
@@ -117,15 +110,10 @@ def test_subsets_from_outcomes_keeps_every_strategy() -> None:
         STRATEGY_BACKWARD,
     ]
     assert subsets[STRATEGY_ALL] == dataset.feature_names
-
-
-def test_subsets_from_outcomes_rejects_duplicates_and_empty_input() -> None:
-    dataset, plan = _dataset(), _plan()
-    outcome = all_features_outcome(dataset, plan)
-    with pytest.raises(ValueError, match="Duplicate strategy"):
-        subsets_from_outcomes([outcome, outcome])
-    with pytest.raises(ValueError, match="empty"):
-        subsets_from_outcomes([])
+    # the constant column is removed by the variance filter, never by the
+    # all-features baseline
+    assert "constant" not in subsets[STRATEGY_VARIANCE]
+    assert "constant" in subsets[STRATEGY_ALL]
 
 
 # ---------------------------------------------------------------------------
