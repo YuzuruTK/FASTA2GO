@@ -34,6 +34,13 @@ notebooks/pipeline.ipynb validação etapa por etapa com dados e API reais
 
 Coloque o FASTA em `data/` (aceita `.gz`). O caminho padrão é `data/uniprot_sprot.fasta`.
 
+## Dados de entrada
+
+`uniprot_sprot.fasta` é o download FASTA do UniProtKB/Swiss-Prot (proteoma revisado):
+**575.748 entradas**, 209.017.843 resíduos, comprimento médio 363 (mínimo 2, máximo 35.213).
+Todos os cabeçalhos estão no formato `sp|ACC|NOME descrição OS=… OX=… GN=… PE=… SV=…`, sem
+accession repetido; 3.519 sequências contêm resíduos não canônicos (`X`, `U`, `B`, `Z`, `O`).
+
 ## Execução
 
 ```bash
