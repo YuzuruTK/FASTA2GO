@@ -438,8 +438,6 @@ def test_cli_replaces_an_existing_database_only_with_recreate(
             fasta=str(SAMPLE),
             db=str(target),
             limit=2,
-            feature_batch_size=2,
-            batch_size=200,
             no_uniprot=True,
             recreate=False,
         )

@@ -77,17 +77,6 @@ GO_COLUMNS = [
     "retrieved_at",
 ]
 
-#: Proteins per batch. Measured on the Swiss-Prot file with everything one batch
-#: needs at the same time (sequences, AAC and DPC rows in memory, UniProt answers,
-#: CSV staging and the DuckDB insert): ~0.75 GB of RSS with 5,000 proteins,
-#: 1.1 GB with 10,000 and 1.7 GB with 20,000, i.e. ~80 KB per protein. The
-#: 100,000-protein batch originally planned would therefore need ~7-8 GB.
-DEFAULT_BATCH_SIZE = 5000
-
-#: Accessions sent in one UniProt request.
-DEFAULT_ACCESSIONS_PER_REQUEST = 200
-
-
 def utc_now() -> datetime:
     """Naive UTC timestamp (DuckDB ``TIMESTAMP`` carries no time zone)."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
@@ -97,9 +86,9 @@ def extract(
     conn: duckdb.DuckDBPyConnection,
     fasta_path: str | Path,
     *,
-    batch_size: int = DEFAULT_BATCH_SIZE,
+    batch_size: int = 5000,
     limit: int | None = None,
-    accessions_per_request: int = DEFAULT_ACCESSIONS_PER_REQUEST,
+    accessions_per_request: int = 200,
     with_uniprot: bool = True,
     session: requests.Session | None = None,
 ) -> dict[str, Any]:
@@ -112,8 +101,10 @@ def extract(
     when the previous one is stored, so a failure leaves the database unchanged.
 
     The database is expected to be empty: no protein is looked up beforehand and
-    nothing is updated afterwards. ``limit`` stops after N stored proteins and
-    ``with_uniprot=False`` stores the proteins and their features only.
+    nothing is updated afterwards. ``batch_size`` is how many proteins the batch
+    holds in memory at once (the script reads it from ``fasta2go.config``),
+    ``limit`` stops after N stored proteins and ``with_uniprot=False`` stores the
+    proteins and their features only.
 
     Raises:
         uniprot.UniProtError: If a request keeps failing. The batch is not

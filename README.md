@@ -22,6 +22,7 @@ data/                    arquivos FASTA de entrada (não versionados)
 db/                      banco DuckDB gerado (não versionado)
 sql/schema.sql           tabelas, chaves e índices
 sql/views.sql            views derivadas
+fasta2go.config          ajustes da extração (entrada, banco, lote, requisições)
 fasta2go/fasta.py        leitura streaming do FASTA e validação por registro
 fasta2go/features.py     AAC, DPC e propriedades físico-químicas
 fasta2go/uniprot.py      cliente REST do UniProt e parsing do JSON
@@ -61,28 +62,42 @@ uv run python main.py run --recreate
 # sem rede: grava as proteínas e as características, sem UniProt
 uv run python main.py run --no-uniprot
 
-# lote maior (menos transações; mais memória: ~80 KB por proteína)
-uv run python main.py run --feature-batch-size 10000
-
 # conferir o que já está no banco (não processa nada)
 uv run python main.py status
 ```
+
+## Configuração
+
+Os valores fixos ficam em `fasta2go.config` (INI, versionado), lido pelo `main.py` na
+inicialização:
+
+| chave | padrão | efeito |
+|---|---|---|
+| `fasta` | `data/uniprot_sprot.fasta` | arquivo de entrada (aceita `.gz`) |
+| `database` | `db/fasta2go.duckdb` | banco DuckDB de saída |
+| `batch_size` | `5000` | proteínas por lote (o lote inteiro fica em memória) |
+| `accessions_per_request` | `200` | accessions por requisição ao UniProt |
+
+Precedência: `--fasta` e `--db` da linha de comando > `fasta2go.config` > valores padrão no
+código (usados apenas se o arquivo não existir). `batch_size` e `accessions_per_request` não são
+opções de linha de comando: são ajustes do arquivo. `--limit`, `--no-uniprot` e `--recreate` são
+de execução e continuam apenas na linha de comando.
 
 ## O que o fluxo faz
 
 A extração é **um único laço em lotes** (`pipeline.extract`). Cada lote percorre o fluxo completo
 antes de o próximo começar:
 
-1. **Ler e preparar** até `--feature-batch-size` registros do FASTA (padrão 5.000), em streaming.
+1. **Ler e preparar** até `batch_size` registros do FASTA (`fasta2go.config`, 5.000), em streaming.
 2. **Calcular as features** de cada proteína do lote (`fasta2go/features.py`).
 3. **Consultar a UniProt** para os accessions do lote (`fasta2go/uniprot.py`), em requisições de
-   `--batch-size` accessions (padrão 200).
+   `accessions_per_request` accessions (`fasta2go.config`, 200).
 4. **Consolidar o lote em CSV**, um arquivo por tabela (`db.write_rows`).
 5. **Inserir o lote no DuckDB em uma transação**: as sete tabelas entram juntas, lidas pelo
    `read_csv` nativo, então uma falha não deixa lote pela metade.
 6. Repetir até o fim do FASTA (ou até `--limit` proteínas gravadas).
 
-O lote padrão é 5.000 proteínas porque o fluxo integrado mantém o lote inteiro em memória:
+O lote de 5.000 proteínas existe porque o fluxo integrado mantém o lote inteiro em memória:
 medindo leitura + features + respostas da UniProt + CSVs + `INSERT`, o pico é de ~0,75 GB de RSS
 com 5.000 proteínas, 1,1 GB com 10.000 e 1,7 GB com 20.000 (~80 KB por proteína). O lote de
 100.000 previsto inicialmente exigiria ~7-8 GB.
@@ -130,9 +145,10 @@ As classes químicas (hidrofóbico, polar, positivo, negativo, carregado, aromá
 
 ### Enriquecimento pela UniProt (no mesmo lote)
 
-Uma requisição por bloco de accessions (`--batch-size`, 200 por padrão) ao endpoint oficial
-`/uniprotkb/accessions`, com `fields` reduzido (a entrada completa é ~4× maior). Accessions são
-validados antes do bloco: um identificador malformado faria o lote inteiro falhar com HTTP 400.
+Uma requisição por bloco de `accessions_per_request` accessions (200 em `fasta2go.config`) ao
+endpoint oficial `/uniprotkb/accessions`, com `fields` reduzido (a entrada completa é ~4× maior).
+Accessions são validados antes do bloco: um identificador malformado faria o lote inteiro falhar
+com HTTP 400.
 Falhas 429/5xx/timeout são repetidas com backoff; falha persistente aborta a execução antes de
 o lote ser gravado, e **nada é gravado como "não encontrado"**.
 

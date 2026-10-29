@@ -7,18 +7,28 @@
 The extraction reads the FASTA in batches and stores each batch completely
 before reading the next one. It always starts from an empty database: an
 existing file is only replaced when ``--recreate`` is given.
+
+The settings (input, database, batch size, accessions per request) come from
+``fasta2go.config``; ``--fasta`` and ``--db`` still override them on demand.
 """
 
 from __future__ import annotations
 
 import argparse
+import configparser
 import sys
 from pathlib import Path
 
 from fasta2go import db, pipeline, uniprot
 
-DEFAULT_FASTA = "data/uniprot_sprot.fasta"
-DEFAULT_DB = "db/fasta2go.duckdb"
+CONFIG_FILE = Path(__file__).resolve().parent / "fasta2go.config"
+CONFIG = configparser.ConfigParser()
+CONFIG.read(CONFIG_FILE, encoding="utf-8")
+
+DEFAULT_FASTA = CONFIG.get("extraction", "fasta", fallback="data/uniprot_sprot.fasta")
+DEFAULT_DB = CONFIG.get("extraction", "database", fallback="db/fasta2go.duckdb")
+BATCH_SIZE = CONFIG.getint("extraction", "batch_size", fallback=5000)
+ACCESSIONS_PER_REQUEST = CONFIG.getint("extraction", "accessions_per_request", fallback=200)
 
 
 def format_summary(summary: dict) -> list[str]:
@@ -67,13 +77,13 @@ def run(args: argparse.Namespace) -> None:
         db.init_schema(conn)
         print(f"Database: {path.resolve()}")
 
-        print(f"\nExtracting {args.fasta} in batches of {args.feature_batch_size:,}")
+        print(f"\nExtracting {args.fasta} in batches of {BATCH_SIZE:,}")
         counts = pipeline.extract(
             conn,
             args.fasta,
-            batch_size=args.feature_batch_size,
+            batch_size=BATCH_SIZE,
             limit=args.limit,
-            accessions_per_request=args.batch_size,
+            accessions_per_request=ACCESSIONS_PER_REQUEST,
             with_uniprot=not args.no_uniprot,
         )
         print(
@@ -131,18 +141,6 @@ def main() -> None:
         type=int,
         default=None,
         help="store at most N proteins (for a quick run)",
-    )
-    run_parser.add_argument(
-        "--feature-batch-size",
-        type=int,
-        default=pipeline.DEFAULT_BATCH_SIZE,
-        help="proteins per extraction batch (time/memory trade-off)",
-    )
-    run_parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=pipeline.DEFAULT_ACCESSIONS_PER_REQUEST,
-        help="accessions per UniProt request",
     )
     run_parser.add_argument(
         "--no-uniprot", action="store_true", help="store proteins and features only"
