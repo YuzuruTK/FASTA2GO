@@ -312,7 +312,8 @@ def enrich(
         WHERE p.uniprot_accession IS NOT NULL
           AND (a.fasta_id IS NULL
                OR (? IS NOT NULL
-                   AND a.retrieved_at < now() - CAST(? AS INTEGER) * INTERVAL 1 DAY))
+                   AND a.retrieved_at < timezone('UTC', now())
+                       - CAST(? AS INTEGER) * INTERVAL 1 DAY))
         ORDER BY p.uniprot_accession, p.source_file, p.fasta_id
         LIMIT ?
     """
