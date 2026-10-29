@@ -32,8 +32,14 @@ CANONICAL = "ACDEFGHIKLMNPQRSTVWY"
 
 
 @pytest.fixture()
-def conn():
-    """An empty in-memory database with the project schema."""
+def conn(tmp_path, monkeypatch):
+    """An empty in-memory database with the project schema.
+
+    ``db.write_rows`` stages each table through one shared file per table, so the
+    staging directory is pointed at ``tmp_path``: a pipeline running in another
+    terminal can then never interfere with the tests.
+    """
+    monkeypatch.setattr(db, "STAGING_DIR", tmp_path / "staging")
     connection = db.connect(":memory:")
     db.init_schema(connection)
     yield connection
