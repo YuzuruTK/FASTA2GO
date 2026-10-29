@@ -1,9 +1,9 @@
 # Input data (FASTA downloads are large and never versioned)
-data/
+/data/
 
 # Generated database and staging files
-db/
-cache/
+/db/
+/cache/
 *.duckdb
 *.duckdb.wal
 
