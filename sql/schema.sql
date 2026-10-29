@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS sequence_features (
     fasta_id              VARCHAR   NOT NULL,
     feature_version       INTEGER   NOT NULL,
     canonical_length      INTEGER   NOT NULL,  -- residues among the 20 canonical ones
-    noncanonical_residues INTEGER   NOT NULL,  -- X, B, Z, U, O, ... excluded from every denominator
+    noncanonical_residues INTEGER   NOT NULL,  -- X, B, Z, U, O, ... excluded from AAC and physicochemical formulas
+    canonical_pairs       INTEGER,             -- adjacent pairs with both residues canonical: DPC denominator
     molecular_weight      DOUBLE,              -- Da (average masses, Biopython)
     isoelectric_point     DOUBLE,
     gravy                 DOUBLE,              -- Kyte & Doolittle hydropathy
@@ -33,6 +34,10 @@ CREATE TABLE IF NOT EXISTS sequence_features (
     computed_at           TIMESTAMP NOT NULL,
     PRIMARY KEY (source_file, fasta_id)
 );
+
+-- Columns added after the first release: CREATE TABLE IF NOT EXISTS does not
+-- touch an existing table, so the migration is explicit (and idempotent).
+ALTER TABLE sequence_features ADD COLUMN IF NOT EXISTS canonical_pairs INTEGER;
 
 -- Amino acid composition, percentages over canonical_length (sums to 100).
 CREATE TABLE IF NOT EXISTS amino_acid_composition (
@@ -61,8 +66,10 @@ CREATE TABLE IF NOT EXISTS amino_acid_composition (
     PRIMARY KEY (source_file, fasta_id)
 );
 
--- Dipeptide (adjacent pair) composition, percentages over canonical_length - 1.
--- NULL when the sequence is too short to contain a single pair.
+-- Dipeptide (adjacent pair) composition, percentages over `canonical_pairs`:
+-- only pairs of canonically adjacent residues of the original sequence are
+-- counted, so a non-canonical residue breaks adjacency instead of joining its
+-- neighbours. NULL when the sequence has no such pair.
 CREATE TABLE IF NOT EXISTS dipeptide_composition (
     source_file VARCHAR NOT NULL,
     fasta_id    VARCHAR NOT NULL,

@@ -64,7 +64,7 @@ def run(args: argparse.Namespace) -> None:
         )
 
         print("\n[2/3] Computing sequence features")
-        counts = pipeline.compute_features(conn)
+        counts = pipeline.compute_features(conn, batch_size=args.feature_batch_size)
         print(
             f"  {counts['computed']:,} computed, {counts['skipped']:,} without "
             f"canonical residues ({counts['elapsed']}s)"
@@ -121,6 +121,12 @@ def main() -> None:
         type=int,
         default=None,
         help="process at most N proteins (for a quick run)",
+    )
+    run_parser.add_argument(
+        "--feature-batch-size",
+        type=int,
+        default=5000,
+        help="proteins per features batch (time/memory trade-off)",
     )
     run_parser.add_argument(
         "--no-uniprot", action="store_true", help="skip the UniProt step"

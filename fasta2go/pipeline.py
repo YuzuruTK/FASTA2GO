@@ -177,13 +177,18 @@ def ingest(
 
 
 def compute_features(
-    conn: duckdb.DuckDBPyConnection, *, batch_size: int = 1000
+    conn: duckdb.DuckDBPyConnection, *, batch_size: int = 5000
 ) -> dict[str, Any]:
     """Compute the characteristics of every protein that lacks them.
 
     A protein is pending when it has no feature row or when the stored
-    ``feature_version`` differs from the current one. Proteins without a single
-    canonical residue keep a row with NULL values, so they are not selected again.
+    ``feature_version`` differs from the current one. Each batch is read once,
+    every sequence is analysed once and the three tables (features, AAC, DPC) are
+    written in one transaction, so a failure leaves the batch untouched.
+
+    A protein without a single canonical residue keeps a row in all three tables,
+    with NULL values, so the three tables stay aligned with ``proteins`` and the
+    protein is not selected again.
     """
     started = time.time()
     counts = {"computed": 0, "skipped": 0}
@@ -212,30 +217,30 @@ def compute_features(
 
         for source_file, fasta_id, sequence in batch:
             cleaned = features.clean_sequence(sequence)
-            if not cleaned:
-                feature_rows.append(
-                    [
-                        source_file,
-                        fasta_id,
-                        features.FEATURE_VERSION,
-                        0,
-                        len(sequence),
-                        *([None] * 7),
-                        now,
-                    ]
-                )
+            if cleaned:
+                values = features.sequence_features(sequence)
+                counts["computed"] += 1
+            else:
+                # No canonical residue: every formula is undefined, but the protein
+                # still gets one row per table, with NULL values.
+                values = {
+                    "feature_version": features.FEATURE_VERSION,
+                    "canonical_length": 0,
+                    "noncanonical_residues": len(sequence),
+                    "canonical_pairs": 0,
+                }
                 counts["skipped"] += 1
-                continue
 
-            values = features.sequence_features(sequence)
             feature_rows.append(
                 [
                     source_file,
                     fasta_id,
-                    *[values[column] for column in features.FEATURE_COLUMNS],
+                    *[values.get(column) for column in features.FEATURE_COLUMNS],
                     now,
                 ]
             )
+            # AAC uses the canonical residues; DPC needs the original sequence so a
+            # non-canonical residue breaks adjacency instead of creating a new pair.
             composition = features.amino_acid_composition(cleaned)
             aac_rows.append(
                 [
@@ -244,7 +249,7 @@ def compute_features(
                     *[composition[column] for column in features.AAC_COLUMNS],
                 ]
             )
-            pairs = features.dipeptide_composition(cleaned)
+            pairs = features.dipeptide_composition(sequence)
             dpc_rows.append(
                 [
                     source_file,
@@ -252,7 +257,6 @@ def compute_features(
                     *[pairs[column] for column in features.DPC_COLUMNS],
                 ]
             )
-            counts["computed"] += 1
 
         with db.transaction(conn):
             db.write_rows(

@@ -3,13 +3,17 @@
 Every denominator is explicit:
 
 * AAC  -> percentage over the canonical residues (``canonical_length``), sums to 100.
-* DPC  -> percentage over the adjacent canonical pairs (``canonical_length - 1``),
-          sums to 100, and is undefined (NULL) when the sequence has no pair.
+* DPC  -> percentage over the pairs of canonically adjacent residues
+          (``canonical_pairs``), sums to 100, and is undefined (NULL) when the
+          sequence has no such pair.
 
-Residues outside the 20 canonical amino acids are removed before any
-calculation, because none of the formulas below is defined for them. The count
-of removed residues is stored next to the features, so the denominator of every
-stored percentage is auditable.
+Residues outside the 20 canonical amino acids are removed before the AAC and the
+physicochemical formulas, because none of them is defined for those residues. The
+DPC is the exception: it counts pairs on the original sequence, so a non-canonical
+residue breaks adjacency instead of creating a new pair (``ACXDE`` has ``AC`` and
+``DE``, never ``CD``). The number of removed residues and the DPC denominator are
+stored next to the features, so the denominator of every stored percentage is
+auditable.
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ from fasta2go.fasta import CANONICAL_RESIDUES
 
 #: Bump when a formula or a column definition changes; the pipeline then
 #: recomputes every stored row instead of mixing definitions.
-FEATURE_VERSION = 1
+FEATURE_VERSION = 2
 
 #: One-letter code -> column prefix of the composition table.
 AMINO_ACIDS = {
@@ -56,6 +60,7 @@ FEATURE_COLUMNS = [
     "feature_version",
     "canonical_length",
     "noncanonical_residues",
+    "canonical_pairs",
     "molecular_weight",
     "isoelectric_point",
     "gravy",
@@ -83,17 +88,35 @@ def amino_acid_composition(cleaned: str) -> dict[str, float | None]:
     }
 
 
-def dipeptide_composition(cleaned: str) -> dict[str, float | None]:
+def canonical_pairs(sequence: str) -> int:
+    """Number of adjacent pairs in the original sequence with both residues canonical.
+
+    This is the denominator of the DPC: a non-canonical residue breaks adjacency
+    instead of disappearing and gluing its neighbours.
+    """
+    return sum(
+        1
+        for first, second in zip(sequence, sequence[1:])
+        if first in CANONICAL_RESIDUES and second in CANONICAL_RESIDUES
+    )
+
+
+def dipeptide_composition(sequence: str) -> dict[str, float | None]:
     """Percentage of each adjacent residue pair, keyed by DPC column name.
 
-    Pairs are counted on the cleaned sequence, so ``ACXDE`` contributes ``AC``
-    and ``DE`` but neither ``CX`` nor ``XD``; the denominator is the number of
-    adjacent pairs that exist.
+    Pairs are counted on the original sequence and only when both residues are
+    canonical, so ``ACXDE`` contributes ``AC`` and ``DE`` but never ``CD``; the
+    denominator is :func:`canonical_pairs`. Every value is NULL when no such pair
+    exists, because the percentage is undefined rather than zero.
     """
-    total = len(cleaned) - 1
-    if total <= 0:
+    counts = Counter(
+        first + second
+        for first, second in zip(sequence, sequence[1:])
+        if first in CANONICAL_RESIDUES and second in CANONICAL_RESIDUES
+    )
+    total = sum(counts.values())
+    if not total:
         return dict.fromkeys(DPC_COLUMNS)
-    counts = Counter(first + second for first, second in zip(cleaned, cleaned[1:]))
     return {
         f"{first}_{second}": 100.0 * counts[first + second] / total
         for first in AMINO_ACIDS
@@ -120,6 +143,7 @@ def sequence_features(sequence: str) -> dict[str, float | int | None]:
         "feature_version": FEATURE_VERSION,
         "canonical_length": length,
         "noncanonical_residues": len(sequence) - length,
+        "canonical_pairs": canonical_pairs(sequence),
         "molecular_weight": analysis.molecular_weight(),
         "isoelectric_point": IsoelectricPoint(cleaned).pi(),
         "gravy": analysis.gravy(),

@@ -28,7 +28,7 @@ fasta2go/uniprot.py      cliente REST do UniProt e parsing do JSON
 fasta2go/db.py           conexão, criação do esquema e carga em massa
 fasta2go/pipeline.py     ingestão, cálculo, enriquecimento e resumo
 main.py                  CLI (run | status)
-tests/                   9 testes de comportamento + fixtures
+tests/                   12 testes de comportamento + fixtures
 notebooks/pipeline.ipynb validação etapa por etapa com dados e API reais
 ```
 
@@ -39,7 +39,9 @@ Coloque o FASTA em `data/` (aceita `.gz`). O caminho padrão é `data/uniprot_sp
 `uniprot_sprot.fasta` é o download FASTA do UniProtKB/Swiss-Prot (proteoma revisado):
 **575.748 entradas**, 209.017.843 resíduos, comprimento médio 363 (mínimo 2, máximo 35.213).
 Todos os cabeçalhos estão no formato `sp|ACC|NOME descrição OS=… OX=… GN=… PE=… SV=…`, sem
-accession repetido; 3.519 sequências contêm resíduos não canônicos (`X`, `U`, `B`, `Z`, `O`).
+accession repetido; **2.685** sequências contêm resíduos não canônicos (`X`=8.181, `U`=331,
+`B`=276, `Z`=249, `O`=29). Não há `*`, `-`, espaços nem minúsculas nas sequências, e nenhum
+cabeçalho de isoforma (`sp|ACC-N|…`).
 
 ## Execução
 
@@ -52,6 +54,9 @@ uv run python main.py run --limit 2000
 
 # sem rede
 uv run python main.py run --no-uniprot
+
+# lote maior de características (menos statements; mais memória)
+uv run python main.py run --feature-batch-size 10000
 
 # reconsultar anotações mais antigas que 30 dias
 uv run python main.py run --max-age-days 30
@@ -84,17 +89,27 @@ Problemas vão para `ingestion_issues`, nunca são silenciados:
 ### 2. Características (`pipeline.compute_features`)
 
 Calculadas apenas para proteínas sem linha de características ou com `feature_version`
-diferente da atual.
+diferente da atual. O lote é lido uma vez, cada sequência é analisada uma vez e as três tabelas
+são gravadas em **uma transação por lote** — se qualquer gravação falhar, o lote inteiro é
+revertido. Tamanho do lote: `--feature-batch-size` (padrão 5.000).
 
 | tabela | conteúdo |
 |---|---|
-| `sequence_features` | comprimento canônico, resíduos não canônicos, massa molecular, pI, GRAVY, índice de instabilidade, índice alifático (Ikai), aromaticidade, entropia de Shannon |
-| `amino_acid_composition` | 20 percentuais, denominador = resíduos canônicos |
-| `dipeptide_composition` | 400 percentuais de pares adjacentes, denominador = `canonical_length - 1` |
+| `sequence_features` | comprimento canônico, resíduos não canônicos, pares adjacentes canônicos, massa molecular, pI, GRAVY, índice de instabilidade, índice alifático (Ikai), aromaticidade, entropia de Shannon |
+| `amino_acid_composition` | 20 percentuais, denominador = resíduos canônicos (`canonical_length`) |
+| `dipeptide_composition` | 400 percentuais de pares adjacentes, denominador = `canonical_pairs` |
 
-Resíduos ambíguos (`X`, `B`, `Z`) e raros (`U`, `O`) são removidos antes de qualquer fórmula
-— nenhuma delas é definida para eles — e o total removido fica em `noncanonical_residues`,
-de modo que o denominador de cada percentual é auditável. AAC e DPC somam 100 por construção.
+Resíduos ambíguos (`X`, `B`, `Z`) e raros (`U`, `O`) são removidos antes da AAC e das fórmulas
+físico-químicas — nenhuma delas é definida para eles — e o total removido fica em
+`noncanonical_residues`. O **DPC é a exceção**: os pares são contados na sequência original e
+somente quando os dois resíduos são canônicos, de modo que um resíduo não canônico **quebra** a
+adjacência em vez de unir os vizinhos. Em `ACXDE` contam-se `AC` e `DE` (50% cada), nunca `CD`;
+o denominador (`canonical_pairs` = 2) fica gravado ao lado das características. Sequências sem
+nenhum par válido (`AXXA`) ficam com as 400 colunas `NULL` — indefinido, não zero. AAC e DPC
+somam 100 por construção, cada um com o seu próprio denominador.
+
+Uma proteína sem nenhum resíduo canônico mantém **uma linha nas três tabelas**, com valores
+`NULL`, para que as três permaneçam alinhadas com `proteins`.
 
 As classes químicas (hidrofóbico, polar, positivo, negativo, carregado, aromático, enxofre) são
 **derivadas em view** a partir da AAC em `protein_features`; não são armazenadas de novo.
@@ -166,13 +181,14 @@ Views: `protein_features` (sequência + características + AAC + classes químic
 ## Testes e validação
 
 ```bash
-uv run pytest            # 9 testes, sem acesso à rede
+uv run pytest            # 12 testes, sem acesso à rede
 ```
 
 Os testes usam `tests/data/sample.fasta` (proteínas válidas, sequência vazia, cabeçalho
 malformado, identificador repetido, resíduos ambíguos) e uma resposta real do UniProt capturada
-em `tests/data/uniprot_response.json`. Cobrem: leitura do FASTA, denominadores de AAC/DPC,
-propriedades conhecidas da hemoglobina alfa, idempotência, retomada, parsing de GO
+em `tests/data/uniprot_response.json`. Cobrem: leitura do FASTA, denominadores de AAC/DPC
+(inclusive `ACXDE`, `AXXA` e o rollback do lote), proteína sem resíduo canônico com uma linha
+por tabela, propriedades conhecidas da hemoglobina alfa, idempotência, retomada, parsing de GO
 (aspecto/evidência/proveniência) e o caso de falha de rede sem gravação de dados.
 
 `notebooks/pipeline.ipynb` percorre a etapa inteira com asserts, usando um banco descartável e a
