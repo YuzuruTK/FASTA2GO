@@ -1,0 +1,17 @@
+# Input data (FASTA downloads are large and never versioned)
+data/
+
+# Generated database and staging files
+db/
+cache/
+*.duckdb
+*.duckdb.wal
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Notebooks
+.ipynb_checkpoints/
