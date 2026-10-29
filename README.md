@@ -26,10 +26,10 @@ fasta2go/fasta.py        leitura streaming do FASTA e validação por registro
 fasta2go/features.py     AAC, DPC e propriedades físico-químicas
 fasta2go/uniprot.py      cliente REST do UniProt e parsing do JSON
 fasta2go/db.py           conexão, criação do esquema e carga em massa
-fasta2go/pipeline.py     ingestão, cálculo, enriquecimento e resumo
+fasta2go/pipeline.py     extração integrada em lotes + resumo do banco
 main.py                  CLI (run | status)
-tests/                   12 testes de comportamento + fixtures
-notebooks/pipeline.ipynb validação etapa por etapa com dados e API reais
+tests/                   13 testes de comportamento + fixtures
+notebooks/pipeline.ipynb validação do fluxo com dados e API reais
 ```
 
 Coloque o FASTA em `data/` (aceita `.gz`). O caminho padrão é `data/uniprot_sprot.fasta`.
@@ -45,31 +45,49 @@ cabeçalho de isoforma (`sp|ACC-N|…`).
 
 ## Execução
 
+A extração sempre começa de um banco vazio: o `run` recusa um arquivo existente e só o
+substitui quando `--recreate` é passado — nada é apagado sem que isso seja pedido.
+
 ```bash
-# fluxo completo: ingestão -> características -> UniProt -> resumo
+# extração completa: FASTA -> features -> UniProt -> CSVs -> DuckDB -> resumo
 uv run python main.py run
 
-# recorte pequeno, útil para testar (processa no máximo 2000 proteínas nesta execução)
+# recorte pequeno, útil para testar (grava no máximo 2000 proteínas)
 uv run python main.py run --limit 2000
 
-# sem rede
+# refazer a extração sobre um banco já existente (o arquivo é substituído)
+uv run python main.py run --recreate
+
+# sem rede: grava as proteínas e as características, sem UniProt
 uv run python main.py run --no-uniprot
 
-# lote maior de características (menos statements; mais memória)
+# lote maior (menos transações; mais memória: ~80 KB por proteína)
 uv run python main.py run --feature-batch-size 10000
-
-# reconsultar anotações mais antigas que 30 dias
-uv run python main.py run --max-age-days 30
 
 # conferir o que já está no banco (não processa nada)
 uv run python main.py status
 ```
 
-Todos os comandos são seguros de repetir: nada é duplicado, nada já válido é recalculado.
-
 ## O que o fluxo faz
 
-### 1. Ingestão (`pipeline.ingest`)
+A extração é **um único laço em lotes** (`pipeline.extract`). Cada lote percorre o fluxo completo
+antes de o próximo começar:
+
+1. **Ler e preparar** até `--feature-batch-size` registros do FASTA (padrão 5.000), em streaming.
+2. **Calcular as features** de cada proteína do lote (`fasta2go/features.py`).
+3. **Consultar a UniProt** para os accessions do lote (`fasta2go/uniprot.py`), em requisições de
+   `--batch-size` accessions (padrão 200).
+4. **Consolidar o lote em CSV**, um arquivo por tabela (`db.write_rows`).
+5. **Inserir o lote no DuckDB em uma transação**: as sete tabelas entram juntas, lidas pelo
+   `read_csv` nativo, então uma falha não deixa lote pela metade.
+6. Repetir até o fim do FASTA (ou até `--limit` proteínas gravadas).
+
+O lote padrão é 5.000 proteínas porque o fluxo integrado mantém o lote inteiro em memória:
+medindo leitura + features + respostas da UniProt + CSVs + `INSERT`, o pico é de ~0,75 GB de RSS
+com 5.000 proteínas, 1,1 GB com 10.000 e 1,7 GB com 20.000 (~80 KB por proteína). O lote de
+100.000 previsto inicialmente exigiria ~7-8 GB.
+
+### Leitura e validação do FASTA
 
 Leitura em streaming, um registro por vez. São preservados o cabeçalho original
 (`proteins.fasta_header`), o primeiro token do cabeçalho (`fasta_id`) e, quando o formato é
@@ -86,12 +104,11 @@ Problemas vão para `ingestion_issues`, nunca são silenciados:
 | `noncanonical_residues` | registro mantido; resíduos fora dos 20 canônicos excluídos dos denominadores |
 | `header_without_accession` | registro mantido, não consultado no UniProt |
 
-### 2. Características (`pipeline.compute_features`)
+### Features da sequência
 
-Calculadas apenas para proteínas sem linha de características ou com `feature_version`
-diferente da atual. O lote é lido uma vez, cada sequência é analisada uma vez e as três tabelas
-são gravadas em **uma transação por lote** — se qualquer gravação falhar, o lote inteiro é
-revertido. Tamanho do lote: `--feature-batch-size` (padrão 5.000).
+Cada sequência do lote é analisada uma vez e as três tabelas são gravadas na mesma transação do
+lote. Uma proteína sem nenhum resíduo canônico mantém **uma linha nas três tabelas**, com valores
+`NULL`, para que as três permaneçam alinhadas com `proteins`.
 
 | tabela | conteúdo |
 |---|---|
@@ -108,19 +125,16 @@ o denominador (`canonical_pairs` = 2) fica gravado ao lado das características.
 nenhum par válido (`AXXA`) ficam com as 400 colunas `NULL` — indefinido, não zero. AAC e DPC
 somam 100 por construção, cada um com o seu próprio denominador.
 
-Uma proteína sem nenhum resíduo canônico mantém **uma linha nas três tabelas**, com valores
-`NULL`, para que as três permaneçam alinhadas com `proteins`.
-
 As classes químicas (hidrofóbico, polar, positivo, negativo, carregado, aromático, enxofre) são
 **derivadas em view** a partir da AAC em `protein_features`; não são armazenadas de novo.
 
-### 3. Enriquecimento (`pipeline.enrich`)
+### Enriquecimento pela UniProt (no mesmo lote)
 
-Uma requisição por lote de accessions (200 por padrão) ao endpoint oficial
+Uma requisição por bloco de accessions (`--batch-size`, 200 por padrão) ao endpoint oficial
 `/uniprotkb/accessions`, com `fields` reduzido (a entrada completa é ~4× maior). Accessions são
-validados antes do lote: um identificador malformado faria o lote inteiro falhar com HTTP 400.
-Falhas 429/5xx/timeout são repetidas com backoff; falha persistente aborta a etapa com mensagem
-clara e **nada é gravado como "não encontrado"**.
+validados antes do bloco: um identificador malformado faria o lote inteiro falhar com HTTP 400.
+Falhas 429/5xx/timeout são repetidas com backoff; falha persistente aborta a execução antes de
+o lote ser gravado, e **nada é gravado como "não encontrado"**.
 
 Campos gravados em `uniprot_annotations`: accession, entry name, nome da proteína, genes,
 organismo, táxon, existência da proteína, accessions secundários, keywords, descrição de função,
@@ -128,15 +142,18 @@ localização subcelular e comprimento informado pela fonte.
 
 Estado da anotação em `uniprot_annotations.status`:
 
-- linha ausente → **nunca consultado**;
 - `matched` → a fonte devolveu a entrada;
-- `not_found` → consultado, a fonte não conhece o accession.
+- `not_found` → consultado, a fonte não conhece o accession;
+- linha ausente → a proteína não tem accession (`header_without_accession`) ou o lote ainda não
+  foi gravado.
 
 GO fica em `protein_go_annotations`, uma linha por `(proteína, termo, evidência)`:
 `go_id`, `aspect` (`biological_process` / `cellular_component` / `molecular_function`),
 `go_name`, `evidence_code`, `evidence_source` (quem atribuiu) e `provenance`
 (referências `PubMed:...`, quando existem — cerca de 91% das anotações do UniProt não têm
-referência). **Nenhuma propagação de ancestrais** é feita nesta etapa.
+referência). A associação é sempre feita pelo accession da própria proteína: um accession que a
+fonte não devolveu fica `not_found` e **não recebe termo algum**. **Nenhuma propagação de
+ancestrais** é feita nesta etapa.
 
 ## Consultando o resultado
 
@@ -181,25 +198,29 @@ Views: `protein_features` (sequência + características + AAC + classes químic
 ## Testes e validação
 
 ```bash
-uv run pytest            # 12 testes, sem acesso à rede
+uv run pytest            # 13 testes, sem acesso à rede
 ```
 
 Os testes usam `tests/data/sample.fasta` (proteínas válidas, sequência vazia, cabeçalho
 malformado, identificador repetido, resíduos ambíguos) e uma resposta real do UniProt capturada
 em `tests/data/uniprot_response.json`. Cobrem: leitura do FASTA, denominadores de AAC/DPC
-(inclusive `ACXDE`, `AXXA` e o rollback do lote), proteína sem resíduo canônico com uma linha
-por tabela, propriedades conhecidas da hemoglobina alfa, idempotência, retomada, parsing de GO
-(aspecto/evidência/proveniência) e o caso de falha de rede sem gravação de dados.
+(inclusive `ACXDE`, `AXXA`), proteína sem resíduo canônico com uma linha por tabela, propriedades
+conhecidas da hemoglobina alfa, a extração integrada lote a lote (contagens, `ingestion_issues`,
+`--limit`, transação revertida quando uma tabela falha, associação proteína → accession → GO,
+`not_found` sem termo), parsing de GO (aspecto/evidência/proveniência), falha de rede sem
+gravação de dados e a recusa do CLI em reaproveitar um banco existente sem `--recreate`.
 
-`notebooks/pipeline.ipynb` percorre a etapa inteira com asserts, usando um banco descartável e a
-API real.
+`notebooks/pipeline.ipynb` percorre o fluxo integrado com asserts, usando um banco descartável e
+a API real.
 
 ## Limitações conhecidas
 
 - **Custo do enriquecimento completo**: 575.748 proteínas exigem ~2.900 requisições, ~1,8 GB de
   download e cerca de 1 h (extrapolação da execução medida); o banco completo fica em torno de
   4 GB, dominado pela tabela de dipeptídeos (400 colunas `DOUBLE`).
+- Cada extração completa começa de um banco vazio (`--recreate`): não há sincronização
+  incremental entre execuções nem retomada de um banco parcialmente gravado.
 - Sem propagação de ancestrais GO e sem GO Slim: pertencem à etapa de rotulagem.
 - Sem comparação entre a sequência do FASTA e a do UniProt (`source_length` é gravado apenas
   como informação da fonte).
-- Um FASTA sem cabeçalho na primeira linha interrompe a ingestão com erro explícito.
+- Um FASTA sem cabeçalho na primeira linha interrompe a extração com erro explícito.

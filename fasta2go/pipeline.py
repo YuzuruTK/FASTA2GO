@@ -1,8 +1,12 @@
-"""Extraction pipeline: ingest -> features -> UniProt -> summary.
+"""Extraction pipeline: one pass over the FASTA that fills every table.
 
-Every step is incremental and idempotent: it selects only what is missing or
-outdated, writes in batches, and can be re-run after any interruption without
-re-importing or recomputing what is already valid.
+The FASTA is read in batches. For every batch the sequences are analysed, the
+accessions are queried on UniProt, the lines are consolidated into CSV and all
+the rows are written in one transaction before the next batch starts, so a batch
+is either completely stored or not stored at all.
+
+A complete extraction starts from an empty database: nothing is looked up
+beforehand and nothing is updated afterwards.
 """
 
 from __future__ import annotations
@@ -10,15 +14,13 @@ from __future__ import annotations
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import duckdb
 import requests
 
 from fasta2go import db, features, uniprot
 from fasta2go.fasta import read_fasta
-
-KEY = ("source_file", "fasta_id")
 
 PROTEIN_COLUMNS = [
     "source_file",
@@ -75,86 +77,158 @@ GO_COLUMNS = [
     "retrieved_at",
 ]
 
+#: Proteins per batch. Measured on the Swiss-Prot file with everything one batch
+#: needs at the same time (sequences, AAC and DPC rows in memory, UniProt answers,
+#: CSV staging and the DuckDB insert): ~0.75 GB of RSS with 5,000 proteins,
+#: 1.1 GB with 10,000 and 1.7 GB with 20,000, i.e. ~80 KB per protein. The
+#: 100,000-protein batch originally planned would therefore need ~7-8 GB.
+DEFAULT_BATCH_SIZE = 5000
+
+#: Accessions sent in one UniProt request.
+DEFAULT_ACCESSIONS_PER_REQUEST = 200
+
 
 def utc_now() -> datetime:
     """Naive UTC timestamp (DuckDB ``TIMESTAMP`` carries no time zone)."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def ingest(
+def extract(
     conn: duckdb.DuckDBPyConnection,
     fasta_path: str | Path,
     *,
+    batch_size: int = DEFAULT_BATCH_SIZE,
     limit: int | None = None,
-    batch_size: int = 2000,
+    accessions_per_request: int = DEFAULT_ACCESSIONS_PER_REQUEST,
+    with_uniprot: bool = True,
+    session: requests.Session | None = None,
 ) -> dict[str, Any]:
-    """Import every valid record of a FASTA file.
+    """Read the FASTA in batches and store each batch as a whole.
 
-    Proteins already stored for the same file are skipped, so the import is
-    idempotent. Records that cannot be stored are counted and written to
-    ``ingestion_issues`` instead of disappearing silently.
+    Every batch goes through the complete flow: the records are read and
+    validated, their features are computed, their accessions are queried on
+    UniProt, the lines of the batch are consolidated into CSV and the rows of
+    the seven tables are written in one transaction. The next batch starts only
+    when the previous one is stored, so a failure leaves the database unchanged.
+
+    The database is expected to be empty: no protein is looked up beforehand and
+    nothing is updated afterwards. ``limit`` stops after N stored proteins and
+    ``with_uniprot=False`` stores the proteins and their features only.
+
+    Raises:
+        uniprot.UniProtError: If a request keeps failing. The batch is not
+            written at all, so no accession is recorded as missing.
     """
     started = time.time()
     path = Path(fasta_path)
     source_file = path.name
-    now = utc_now()
-    known = {
-        row[0]
-        for row in conn.execute(
-            "SELECT fasta_id FROM proteins WHERE source_file = ?", [source_file]
-        ).fetchall()
-    }
-    conn.execute("DELETE FROM ingestion_issues WHERE source_file = ?", [source_file])
+    client = session or (requests.Session() if with_uniprot else None)
 
-    counts = {
+    counts: dict[str, Any] = {
         "records": 0,
         "inserted": 0,
-        "already_present": 0,
         "rejected": 0,
         "duplicates": 0,
+        "computed": 0,
+        "skipped": 0,
+        "queried": 0,
+        "matched": 0,
+        "not_found": 0,
+        "go_rows": 0,
+        "requests": 0,
+        "batches": 0,
     }
-    rows: list[list[Any]] = []
-    issues: list[list[Any]] = []
+    protein_rows: list[list[Any]] = []
+    issue_rows: list[list[Any]] = []
+    feature_rows: list[list[Any]] = []
+    aac_rows: list[list[Any]] = []
+    dpc_rows: list[list[Any]] = []
+    by_accession: dict[str, list[tuple[str, str]]] = {}
     seen: set[str] = set()
 
     def flush() -> None:
-        nonlocal rows, issues
-        counts["inserted"] += db.write_rows(
-            conn, "proteins", PROTEIN_COLUMNS, rows, key=KEY
-        )
-        db.write_rows(conn, "ingestion_issues", ISSUE_COLUMNS, issues)
-        rows, issues = [], []
+        """Query UniProt for the batch and write every table in one transaction."""
+        nonlocal protein_rows, issue_rows, feature_rows, aac_rows, dpc_rows
+        nonlocal by_accession
 
+        annotation_rows: list[list[Any]] = []
+        go_rows: list[list[Any]] = []
+        if by_accession:
+            found: dict[str, uniprot.Annotation] = {}
+            accessions = list(by_accession)
+            for start in range(0, len(accessions), accessions_per_request):
+                chunk = [
+                    accession
+                    for accession in accessions[start : start + accessions_per_request]
+                    if uniprot.ACCESSION_PATTERN.match(accession)
+                ]
+                if not chunk:
+                    continue
+                found.update(uniprot.fetch(chunk, session=client))
+                counts["requests"] += 1
+            counts["queried"] += sum(len(keys) for keys in by_accession.values())
+            counts["matched"] += sum(
+                len(keys)
+                for accession, keys in by_accession.items()
+                if accession in found
+            )
+            counts["not_found"] += sum(
+                len(keys)
+                for accession, keys in by_accession.items()
+                if accession not in found
+            )
+            annotation_rows, go_rows = _annotation_rows(by_accession, found, utc_now())
+
+        stored = len(protein_rows)
+        with db.transaction(conn):
+            db.write_rows(conn, "proteins", PROTEIN_COLUMNS, protein_rows)
+            db.write_rows(conn, "sequence_features", FEATURE_TABLE_COLUMNS, feature_rows)
+            db.write_rows(conn, "amino_acid_composition", AAC_TABLE_COLUMNS, aac_rows)
+            db.write_rows(conn, "dipeptide_composition", DPC_TABLE_COLUMNS, dpc_rows)
+            db.write_rows(conn, "uniprot_annotations", ANNOTATION_COLUMNS, annotation_rows)
+            db.write_rows(conn, "protein_go_annotations", GO_COLUMNS, go_rows)
+            db.write_rows(conn, "ingestion_issues", ISSUE_COLUMNS, issue_rows)
+
+        counts["inserted"] += stored
+        counts["go_rows"] += len(go_rows)
+        if stored:
+            counts["batches"] += 1
+        protein_rows, issue_rows = [], []
+        feature_rows, aac_rows, dpc_rows = [], [], []
+        by_accession = {}
+
+    processed = 0
+    in_batch = 0
     for record in read_fasta(path):
+        if limit is not None and processed >= limit:
+            break
         counts["records"] += 1
 
         if record.fasta_id in seen:
             counts["duplicates"] += 1
-            issues.append(
+            issue_rows.append(
                 [
                     source_file,
                     record.line_number,
                     record.fasta_id,
                     "duplicate_id",
                     "kept the first occurrence",
-                    now,
+                    utc_now(),
                 ]
             )
             continue
         seen.add(record.fasta_id)
-        issues.extend(
-            [source_file, record.line_number, record.fasta_id, code, detail, now]
+        issue_rows.extend(
+            [source_file, record.line_number, record.fasta_id, code, detail, utc_now()]
             for code, detail in record.issues
         )
 
         if not record.is_valid:
             counts["rejected"] += 1
             continue
-        if record.fasta_id in known:
-            counts["already_present"] += 1
-            continue
 
-        rows.append(
+        now = utc_now()
+        protein_rows.append(
             [
                 source_file,
                 record.fasta_id,
@@ -165,202 +239,86 @@ def ingest(
                 now,
             ]
         )
-        if len(rows) >= batch_size or (limit is not None and len(rows) >= limit):
+        feature_row, aac_row, dpc_row, defined = _feature_rows(
+            source_file, record.fasta_id, record.sequence, now
+        )
+        feature_rows.append(feature_row)
+        aac_rows.append(aac_row)
+        dpc_rows.append(dpc_row)
+        counts["computed" if defined else "skipped"] += 1
+
+        if with_uniprot and record.uniprot_accession is not None:
+            by_accession.setdefault(record.uniprot_accession.upper(), []).append(
+                (source_file, record.fasta_id)
+            )
+
+        processed += 1
+        in_batch += 1
+        if in_batch >= batch_size:
             flush()
-            if limit is not None and counts["inserted"] >= limit:
-                break
-    if rows or issues:
+            in_batch = 0
+
+    if in_batch or issue_rows:
         flush()
 
     counts["elapsed"] = round(time.time() - started, 1)
     return counts
 
 
-def compute_features(
-    conn: duckdb.DuckDBPyConnection, *, batch_size: int = 5000
-) -> dict[str, Any]:
-    """Compute the characteristics of every protein that lacks them.
+def _feature_rows(
+    source_file: str, fasta_id: str, sequence: str, now: datetime
+) -> tuple[list[Any], list[Any], list[Any], bool]:
+    """Rows for the three feature tables and whether any formula was defined.
 
-    A protein is pending when it has no feature row or when the stored
-    ``feature_version`` differs from the current one. Each batch is read once,
-    every sequence is analysed once and the three tables (features, AAC, DPC) are
-    written in one transaction, so a failure leaves the batch untouched.
-
-    A protein without a single canonical residue keeps a row in all three tables,
-    with NULL values, so the three tables stay aligned with ``proteins`` and the
-    protein is not selected again.
+    AAC uses the canonical residues; DPC needs the original sequence so a
+    non-canonical residue breaks adjacency instead of creating a new pair. A
+    protein without a single canonical residue still gets one row in each table,
+    with NULL values, so the three tables stay aligned with ``proteins``.
     """
-    started = time.time()
-    counts = {"computed": 0, "skipped": 0}
-    pending = """
-        SELECT p.source_file, p.fasta_id, p.sequence
-        FROM proteins p
-        LEFT JOIN sequence_features f USING (source_file, fasta_id)
-        WHERE f.fasta_id IS NULL OR f.feature_version <> ?
-        LIMIT ?
-    """
-    feature_update = [c for c in FEATURE_TABLE_COLUMNS if c not in KEY]
-    aac_update = [c for c in AAC_TABLE_COLUMNS if c not in KEY]
-    dpc_update = [c for c in DPC_TABLE_COLUMNS if c not in KEY]
+    cleaned = features.clean_sequence(sequence)
+    if cleaned:
+        values = features.sequence_features(sequence)
+    else:
+        values = {
+            "feature_version": features.FEATURE_VERSION,
+            "canonical_length": 0,
+            "noncanonical_residues": len(sequence),
+            "canonical_pairs": 0,
+        }
 
-    while True:
-        batch = conn.execute(
-            pending, [features.FEATURE_VERSION, batch_size]
-        ).fetchall()
-        if not batch:
-            break
-
-        now = utc_now()
-        feature_rows: list[list[Any]] = []
-        aac_rows: list[list[Any]] = []
-        dpc_rows: list[list[Any]] = []
-
-        for source_file, fasta_id, sequence in batch:
-            cleaned = features.clean_sequence(sequence)
-            if cleaned:
-                values = features.sequence_features(sequence)
-                counts["computed"] += 1
-            else:
-                # No canonical residue: every formula is undefined, but the protein
-                # still gets one row per table, with NULL values.
-                values = {
-                    "feature_version": features.FEATURE_VERSION,
-                    "canonical_length": 0,
-                    "noncanonical_residues": len(sequence),
-                    "canonical_pairs": 0,
-                }
-                counts["skipped"] += 1
-
-            feature_rows.append(
-                [
-                    source_file,
-                    fasta_id,
-                    *[values.get(column) for column in features.FEATURE_COLUMNS],
-                    now,
-                ]
-            )
-            # AAC uses the canonical residues; DPC needs the original sequence so a
-            # non-canonical residue breaks adjacency instead of creating a new pair.
-            composition = features.amino_acid_composition(cleaned)
-            aac_rows.append(
-                [
-                    source_file,
-                    fasta_id,
-                    *[composition[column] for column in features.AAC_COLUMNS],
-                ]
-            )
-            pairs = features.dipeptide_composition(sequence)
-            dpc_rows.append(
-                [
-                    source_file,
-                    fasta_id,
-                    *[pairs[column] for column in features.DPC_COLUMNS],
-                ]
-            )
-
-        with db.transaction(conn):
-            db.write_rows(
-                conn,
-                "sequence_features",
-                FEATURE_TABLE_COLUMNS,
-                feature_rows,
-                key=KEY,
-                update=feature_update,
-            )
-            db.write_rows(
-                conn,
-                "amino_acid_composition",
-                AAC_TABLE_COLUMNS,
-                aac_rows,
-                key=KEY,
-                update=aac_update,
-            )
-            db.write_rows(
-                conn,
-                "dipeptide_composition",
-                DPC_TABLE_COLUMNS,
-                dpc_rows,
-                key=KEY,
-                update=dpc_update,
-            )
-
-    counts["elapsed"] = round(time.time() - started, 1)
-    return counts
+    feature_row = [
+        source_file,
+        fasta_id,
+        *[values.get(column) for column in features.FEATURE_COLUMNS],
+        now,
+    ]
+    composition = features.amino_acid_composition(cleaned)
+    aac_row = [
+        source_file,
+        fasta_id,
+        *[composition[column] for column in features.AAC_COLUMNS],
+    ]
+    pairs = features.dipeptide_composition(sequence)
+    dpc_row = [
+        source_file,
+        fasta_id,
+        *[pairs[column] for column in features.DPC_COLUMNS],
+    ]
+    return feature_row, aac_row, dpc_row, bool(cleaned)
 
 
-def enrich(
-    conn: duckdb.DuckDBPyConnection,
-    *,
-    batch_size: int = 200,
-    max_age_days: int | None = None,
-    limit: int | None = None,
-    session: requests.Session | None = None,
-) -> dict[str, Any]:
-    """Retrieve UniProt metadata and GO annotations for pending proteins.
-
-    A protein is pending when it has a UniProt accession and no annotation row,
-    or when its row is older than ``max_age_days``. Each batch is committed in a
-    single transaction, so an interrupted run loses nothing and the next run
-    continues from the proteins still without an annotation.
-
-    Raises:
-        uniprot.UniProtError: If a request keeps failing. Nothing is recorded as
-            missing for the accessions of the failed batch.
-    """
-    started = time.time()
-    counts = {"queried": 0, "matched": 0, "not_found": 0, "go_rows": 0, "requests": 0}
-    pending = """
-        SELECT p.source_file, p.fasta_id, p.uniprot_accession
-        FROM proteins p
-        LEFT JOIN uniprot_annotations a USING (source_file, fasta_id)
-        WHERE p.uniprot_accession IS NOT NULL
-          AND (a.fasta_id IS NULL
-               OR (? IS NOT NULL
-                   AND a.retrieved_at < timezone('UTC', now())
-                       - CAST(? AS INTEGER) * INTERVAL 1 DAY))
-        ORDER BY p.uniprot_accession, p.source_file, p.fasta_id
-        LIMIT ?
-    """
-    client = session or requests.Session()
-
-    while True:
-        size = batch_size if limit is None else min(batch_size, limit - counts["queried"])
-        if size <= 0:
-            break
-
-        batch = conn.execute(pending, [max_age_days, max_age_days, size]).fetchall()
-        if not batch:
-            break
-
-        by_accession: dict[str, list[tuple[str, str]]] = {}
-        for source_file, fasta_id, accession in batch:
-            by_accession.setdefault(accession.upper(), []).append((source_file, fasta_id))
-
-        found = uniprot.fetch(list(by_accession), session=client)
-        counts["requests"] += 1
-        counts["queried"] += len(batch)
-        counts["matched"] += sum(
-            len(keys) for accession, keys in by_accession.items() if accession in found
-        )
-        counts["not_found"] += sum(
-            len(keys) for accession, keys in by_accession.items() if accession not in found
-        )
-        counts["go_rows"] += _store_annotations(conn, by_accession, found)
-
-    counts["elapsed"] = round(time.time() - started, 1)
-    return counts
-
-
-def _store_annotations(
-    conn: duckdb.DuckDBPyConnection,
+def _annotation_rows(
     by_accession: dict[str, list[tuple[str, str]]],
     found: dict[str, uniprot.Annotation],
-) -> int:
-    """Persist one batch of results atomically; return the number of GO rows."""
-    now = utc_now()
+    now: datetime,
+) -> tuple[list[list[Any]], list[list[Any]]]:
+    """Rows for ``uniprot_annotations`` and ``protein_go_annotations``.
+
+    An accession the source did not return is stored as ``not_found`` and gets no
+    GO row: a missing answer never becomes the annotation of another protein.
+    """
     annotation_rows: list[list[Any]] = []
     go_rows: list[list[Any]] = []
-
     for accession, keys in by_accession.items():
         annotation = found.get(accession)
         for source_file, fasta_id in keys:
@@ -403,36 +361,7 @@ def _store_annotations(
                         now,
                     ]
                 )
-
-    annotation_update = [c for c in ANNOTATION_COLUMNS if c not in KEY]
-    with db.transaction(conn):
-        # GO rows are replaced per protein: the source may have withdrawn a term,
-        # and keeping it would claim evidence that no longer exists.
-        for source_file, fasta_ids in _group_ids(annotation_rows).items():
-            placeholders = ", ".join("?" for _ in fasta_ids)
-            conn.execute(
-                "DELETE FROM protein_go_annotations "
-                f"WHERE source_file = ? AND fasta_id IN ({placeholders})",
-                [source_file, *fasta_ids],
-            )
-        db.write_rows(
-            conn,
-            "uniprot_annotations",
-            ANNOTATION_COLUMNS,
-            annotation_rows,
-            key=KEY,
-            update=annotation_update,
-        )
-        db.write_rows(conn, "protein_go_annotations", GO_COLUMNS, go_rows)
-
-    return len(go_rows)
-
-
-def _group_ids(rows: Sequence[Sequence[Any]]) -> dict[str, list[str]]:
-    grouped: dict[str, list[str]] = {}
-    for row in rows:
-        grouped.setdefault(row[0], []).append(row[1])
-    return grouped
+    return annotation_rows, go_rows
 
 
 def database_summary(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
@@ -490,3 +419,4 @@ def database_summary(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
             "        WHERE p.fasta_id IS NULL)"
         ),
     }
+

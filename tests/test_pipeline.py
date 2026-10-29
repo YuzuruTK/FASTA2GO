@@ -1,23 +1,27 @@
 """Behaviour tests for the extraction stage.
 
-Twelve tests covering the real risks: FASTA reading, the denominators of the
+Thirteen tests covering the real risks: FASTA reading, the denominators of the
 composition features (AAC over canonical residues, DPC over adjacent canonical
-pairs), idempotent persistence, one transaction per feature batch, resuming, and
-the correspondence between proteins and UniProt/GO annotations. No network: the
-UniProt client is exercised against a response captured from the real API
-(tests/data).
+pairs), the integrated extraction (each batch is read, analysed, queried on
+UniProt and stored in one transaction before the next one starts), the protein
+limit, the refusal to mix with an existing database, and the correspondence
+between proteins and UniProt/GO annotations. No network: the UniProt client is
+exercised against a response captured from the real API (tests/data).
 """
 
 from __future__ import annotations
 
+import argparse
 import gzip
 import json
 import math
 from pathlib import Path
 
+import duckdb
 import pytest
 import requests
 
+import main
 from fasta2go import db, features, pipeline, uniprot
 from fasta2go.fasta import read_fasta
 
@@ -188,28 +192,52 @@ def test_physicochemical_features_are_correct_and_deterministic() -> None:
         features.sequence_features("XXX")
 
 
-# 3. Persistence -------------------------------------------------------------
+# 3. Integrated extraction ---------------------------------------------------
 
-def test_ingestion_and_features_are_idempotent(conn) -> None:
-    first = pipeline.ingest(conn, SAMPLE)
-    assert first["inserted"] == 4
-    assert first["rejected"] == 2
-    assert first["duplicates"] == 1
+def test_extract_stores_each_batch_with_features_go_and_issues(conn) -> None:
+    session = FakeSession(captured_payload())
+    counts = pipeline.extract(conn, SAMPLE, batch_size=2, session=session)
 
-    second = pipeline.ingest(conn, SAMPLE)
-    assert second["inserted"] == 0
-    assert second["already_present"] == 4
+    # Each batch is stored before the next one starts: four valid proteins, two
+    # per batch, so two independent UniProt requests.
+    assert (counts["batches"], counts["inserted"], counts["records"]) == (2, 4, 7)
+    assert (counts["rejected"], counts["duplicates"]) == (2, 1)
+    assert counts["computed"] == 4
+    assert counts["requests"] == 2
+    # Q8N158 is not part of the captured response: it must be recorded as
+    # missing, never annotated with another protein's data.
+    assert (counts["queried"], counts["matched"], counts["not_found"]) == (3, 2, 1)
 
-    assert pipeline.compute_features(conn)["computed"] == 4
-    assert pipeline.compute_features(conn)["computed"] == 0
+    tables = (
+        "proteins",
+        "sequence_features",
+        "amino_acid_composition",
+        "dipeptide_composition",
+    )
+    counts_sql = "SELECT " + ", ".join(
+        f"(SELECT count(*) FROM {table})" for table in tables
+    )
+    assert conn.execute(counts_sql).fetchone() == (4, 4, 4, 4)
 
-    counts = conn.execute(
-        "SELECT (SELECT count(*) FROM proteins), "
-        "(SELECT count(*) FROM sequence_features), "
-        "(SELECT count(*) FROM amino_acid_composition), "
-        "(SELECT count(*) FROM dipeptide_composition)"
-    ).fetchone()
-    assert counts == (4, 4, 4, 4)
+    assert dict(
+        conn.execute("SELECT fasta_id, status FROM uniprot_annotations").fetchall()
+    ) == {
+        "sp|P69905|HBA_HUMAN": "matched",
+        "sp|Q6GZX4|001R_FRG3G": "matched",
+        "sp|Q8N158|GPC2_HUMAN": "not_found",
+    }
+    assert conn.execute(
+        "SELECT count(*) FROM protein_go_annotations "
+        "WHERE fasta_id = 'sp|Q8N158|GPC2_HUMAN'"
+    ).fetchone()[0] == 0
+    hba_terms = {
+        row[0]
+        for row in conn.execute(
+            "SELECT go_id FROM protein_go_annotations "
+            "WHERE fasta_id = 'sp|P69905|HBA_HUMAN'"
+        ).fetchall()
+    }
+    assert "GO:0005576" in hba_terms
 
     issues = dict(
         conn.execute("SELECT issue, count(*) FROM ingestion_issues GROUP BY 1").fetchall()
@@ -222,10 +250,28 @@ def test_ingestion_and_features_are_idempotent(conn) -> None:
         "noncanonical_residues": 1,
     }
 
-    # An outdated feature row is recomputed instead of being kept or duplicated.
-    conn.execute("UPDATE sequence_features SET feature_version = 0")
-    assert pipeline.compute_features(conn)["computed"] == 4
-    assert conn.execute("SELECT count(*) FROM sequence_features").fetchone()[0] == 4
+    summary = pipeline.database_summary(conn)
+    assert summary["proteins"] == 4
+    assert summary["with_features"] == 4
+    assert summary["with_composition"] == 4
+    assert summary["with_dipeptides"] == 4
+    assert summary["unqueried"] == 0
+    assert summary["orphans"] == 0
+
+
+def test_extract_respects_the_protein_limit(conn) -> None:
+    counts = pipeline.extract(
+        conn, SAMPLE, batch_size=10, limit=2, session=FakeSession(captured_payload())
+    )
+
+    assert counts["inserted"] == 2
+    assert counts["records"] == 2  # reading stops as soon as the limit is reached
+    assert conn.execute(
+        "SELECT (SELECT count(*) FROM proteins), "
+        "(SELECT count(*) FROM sequence_features), "
+        "(SELECT count(*) FROM dipeptide_composition)"
+    ).fetchone() == (2, 2, 2)
+    assert conn.execute("SELECT count(*) FROM protein_go_annotations").fetchone()[0] > 0
 
 
 def test_proteins_without_canonical_residues_keep_one_row_per_table(
@@ -236,11 +282,11 @@ def test_proteins_without_canonical_residues_keep_one_row_per_table(
         ">sp|P99999|ALL_AMBIGUOUS Nothing canonical here\nXXXXZ\n", encoding="utf-8"
     )
 
-    pipeline.ingest(conn, fasta)
-    counts = pipeline.compute_features(conn)
+    counts = pipeline.extract(conn, fasta, with_uniprot=False)
 
     assert counts["computed"] == 0
     assert counts["skipped"] == 1
+    assert counts["inserted"] == 1
     assert conn.execute(
         "SELECT (SELECT count(*) FROM sequence_features), "
         "(SELECT count(*) FROM amino_acid_composition), "
@@ -260,66 +306,88 @@ def test_proteins_without_canonical_residues_keep_one_row_per_table(
     ).fetchone()[0] == 0
 
 
-def test_failed_batch_write_rolls_back_the_three_tables(conn, monkeypatch) -> None:
-    pipeline.ingest(conn, SAMPLE)
+def test_failed_batch_write_rolls_back_every_table(conn, monkeypatch) -> None:
     state = {"fail": True}
     real_write_rows = db.write_rows
 
     def flaky_write_rows(target, table, columns, rows, *, key=(), update=()):
-        if table == "dipeptide_composition" and state["fail"]:
+        if table == "protein_go_annotations" and state["fail"]:
             raise RuntimeError("simulated failure")
         return real_write_rows(target, table, columns, rows, key=key, update=update)
 
     monkeypatch.setattr(db, "write_rows", flaky_write_rows)
     with pytest.raises(RuntimeError, match="simulated failure"):
-        pipeline.compute_features(conn)
+        pipeline.extract(conn, SAMPLE, session=FakeSession(captured_payload()))
 
-    # Nothing from the batch survived: features and AAC were written before the
-    # failing DPC statement and must have been rolled back with it.
+    # One transaction per batch: nothing of the failed batch survived in any table.
     assert conn.execute(
-        "SELECT (SELECT count(*) FROM sequence_features), "
+        "SELECT (SELECT count(*) FROM proteins), "
+        "(SELECT count(*) FROM sequence_features), "
         "(SELECT count(*) FROM amino_acid_composition), "
-        "(SELECT count(*) FROM dipeptide_composition)"
-    ).fetchone() == (0, 0, 0)
+        "(SELECT count(*) FROM dipeptide_composition), "
+        "(SELECT count(*) FROM uniprot_annotations), "
+        "(SELECT count(*) FROM protein_go_annotations), "
+        "(SELECT count(*) FROM ingestion_issues)"
+    ).fetchone() == (0, 0, 0, 0, 0, 0, 0)
 
     state["fail"] = False
-    assert pipeline.compute_features(conn)["computed"] == 4
+    assert pipeline.extract(
+        conn, SAMPLE, session=FakeSession(captured_payload())
+    )["inserted"] == 4
 
 
-def test_enrichment_is_idempotent_resumable_and_marks_missing_entries(conn) -> None:
-    pipeline.ingest(conn, SAMPLE)
-    pipeline.compute_features(conn)
-    session = FakeSession(captured_payload())
+def test_failed_uniprot_request_stores_nothing(conn, monkeypatch) -> None:
+    class OfflineSession:
+        def get(self, *args, **kwargs):
+            raise requests.ConnectionError("offline")
 
-    first = pipeline.enrich(conn, session=session)
-    # Q8N158 is not part of the captured response: it must be recorded as missing,
-    # never annotated with another protein's data.
-    assert (first["queried"], first["matched"], first["not_found"]) == (3, 2, 1)
+    # The client reports a failure instead of an empty answer...
+    with pytest.raises(uniprot.UniProtError, match="network error"):
+        uniprot.fetch(["P69905"], session=OfflineSession(), attempts=1, pause=0)
+    # ...and never sends a request for malformed accessions.
+    assert uniprot.fetch(["not-an-accession"], session=ExplodingSession()) == {}
 
-    rows = dict(
-        conn.execute(
-            "SELECT fasta_id, status FROM uniprot_annotations"
-        ).fetchall()
-    )
-    assert rows["sp|P69905|HBA_HUMAN"] == "matched"
-    assert rows["sp|Q8N158|GPC2_HUMAN"] == "not_found"
+    def offline(*args, **kwargs):
+        raise uniprot.UniProtError("offline")
 
-    # Nothing pending: no request at all.
-    second = pipeline.enrich(conn, session=session)
-    assert second["queried"] == 0
-    assert len(session.calls) == 1
+    monkeypatch.setattr(uniprot, "fetch", offline)
+    with pytest.raises(uniprot.UniProtError):
+        pipeline.extract(conn, SAMPLE, session=OfflineSession())
 
-    go_before = conn.execute("SELECT count(*) FROM protein_go_annotations").fetchone()[0]
-
-    # Simulated interruption: one protein lost its annotation, only it is retried.
-    conn.execute("DELETE FROM uniprot_annotations WHERE fasta_id = 'sp|P69905|HBA_HUMAN'")
-    conn.execute("DELETE FROM protein_go_annotations WHERE fasta_id = 'sp|P69905|HBA_HUMAN'")
-    third = pipeline.enrich(conn, session=session)
-    assert third["queried"] == 1
+    # A failed request is not a missing annotation: the batch is not written.
     assert conn.execute(
-        "SELECT count(*) FROM protein_go_annotations WHERE fasta_id = 'sp|P69905|HBA_HUMAN'"
-    ).fetchone()[0] > 0
-    assert conn.execute("SELECT count(*) FROM protein_go_annotations").fetchone()[0] == go_before
+        "SELECT (SELECT count(*) FROM proteins), "
+        "(SELECT count(*) FROM sequence_features), "
+        "(SELECT count(*) FROM uniprot_annotations), "
+        "(SELECT count(*) FROM protein_go_annotations)"
+    ).fetchone() == (0, 0, 0, 0)
+
+
+def test_protein_features_view_persists_consistent_denominators(conn) -> None:
+    pipeline.extract(conn, SAMPLE, with_uniprot=False)
+
+    row = conn.execute(
+        "SELECT canonical_length, hydrophobic_pct + polar_pct + charged_pct, "
+        "aromatic_pct FROM protein_features WHERE fasta_id = 'sp|P69905|HBA_HUMAN'"
+    ).fetchone()
+    assert row[0] == 142
+    # The classes overlap by design (charged residues are also polar/aromatic),
+    # so the sum is checked against the stored composition, not against 100.
+    assert 80 < row[1] < 100
+    assert 0 < row[2] < 15
+
+    # The DPC denominator is stored next to the features: 142 residues, no
+    # non-canonical residue, so 141 adjacent canonical pairs.
+    assert conn.execute(
+        "SELECT canonical_pairs FROM sequence_features "
+        "WHERE fasta_id = 'sp|P69905|HBA_HUMAN'"
+    ).fetchone()[0] == 141
+
+    summary = pipeline.database_summary(conn)
+    assert summary["proteins"] == 4
+    assert summary["with_features"] == 4
+    assert summary["orphans"] == 0
+    assert summary["feature_versions"] == "2"
 
 
 # 4. UniProt client ----------------------------------------------------------
@@ -357,54 +425,36 @@ def test_uniprot_entry_parsing_keeps_go_aspect_evidence_and_provenance() -> None
     }
 
 
-def test_failed_requests_are_never_recorded_as_missing(conn, monkeypatch) -> None:
-    assert uniprot.fetch(["not-an-accession"], session=ExplodingSession()) == {}
+# 5. Command line ------------------------------------------------------------
 
-    class OfflineSession:
-        def get(self, *args, **kwargs):
-            raise requests.ConnectionError("offline")
+def test_cli_replaces_an_existing_database_only_with_recreate(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(db, "STAGING_DIR", tmp_path / "staging")
+    target = tmp_path / "fasta2go.duckdb"
 
-    with pytest.raises(uniprot.UniProtError, match="network error"):
-        uniprot.fetch(["P69905"], session=OfflineSession(), attempts=1, pause=0)
+    def arguments(**overrides) -> argparse.Namespace:
+        settings = dict(
+            fasta=str(SAMPLE),
+            db=str(target),
+            limit=2,
+            feature_batch_size=2,
+            batch_size=200,
+            no_uniprot=True,
+            recreate=False,
+        )
+        settings.update(overrides)
+        return argparse.Namespace(**settings)
 
-    pipeline.ingest(conn, SAMPLE)
+    main.run(arguments())
+    with duckdb.connect(str(target), read_only=True) as handle:
+        assert handle.execute("SELECT count(*) FROM proteins").fetchone()[0] == 2
 
-    def offline(*args, **kwargs):
-        raise uniprot.UniProtError("offline")
+    # An existing database is never replaced silently.
+    with pytest.raises(SystemExit, match="already exists"):
+        main.run(arguments())
 
-    monkeypatch.setattr(uniprot, "fetch", offline)
-    with pytest.raises(uniprot.UniProtError):
-        pipeline.enrich(conn, session=OfflineSession())
-
-    # A failed request is not a missing annotation: nothing is written.
-    assert conn.execute("SELECT count(*) FROM uniprot_annotations").fetchone()[0] == 0
-    assert conn.execute("SELECT count(*) FROM protein_go_annotations").fetchone()[0] == 0
-    assert pipeline.database_summary(conn)["unqueried"] == 3
-
-
-def test_protein_features_view_persists_consistent_denominators(conn) -> None:
-    pipeline.ingest(conn, SAMPLE)
-    pipeline.compute_features(conn)
-
-    row = conn.execute(
-        "SELECT canonical_length, hydrophobic_pct + polar_pct + charged_pct, "
-        "aromatic_pct FROM protein_features WHERE fasta_id = 'sp|P69905|HBA_HUMAN'"
-    ).fetchone()
-    assert row[0] == 142
-    # The classes overlap by design (charged residues are also polar/aromatic),
-    # so the sum is checked against the stored composition, not against 100.
-    assert 80 < row[1] < 100
-    assert 0 < row[2] < 15
-
-    # The DPC denominator is stored next to the features: 142 residues, no
-    # non-canonical residue, so 141 adjacent canonical pairs.
-    assert conn.execute(
-        "SELECT canonical_pairs FROM sequence_features "
-        "WHERE fasta_id = 'sp|P69905|HBA_HUMAN'"
-    ).fetchone()[0] == 141
-
-    summary = pipeline.database_summary(conn)
-    assert summary["proteins"] == 4
-    assert summary["with_features"] == 4
-    assert summary["orphans"] == 0
-    assert summary["feature_versions"] == "2"
+    main.run(arguments(recreate=True))
+    with duckdb.connect(str(target), read_only=True) as handle:
+        assert handle.execute("SELECT count(*) FROM proteins").fetchone()[0] == 2
+        assert handle.execute("SELECT count(*) FROM sequence_features").fetchone()[0] == 2

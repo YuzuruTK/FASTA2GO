@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """FASTA2GO - extraction stage.
 
-    uv run python main.py run       # ingest -> features -> UniProt -> report
+    uv run python main.py run       # FASTA -> features -> UniProt -> DuckDB
     uv run python main.py status    # what the database contains
 
-Both commands are safe to repeat: work already done is not repeated.
+The extraction reads the FASTA in batches and stores each batch completely
+before reading the next one. It always starts from an empty database: an
+existing file is only replaced when ``--recreate`` is given.
 """
 
 from __future__ import annotations
@@ -47,44 +49,50 @@ def format_summary(summary: dict) -> list[str]:
 
 
 def run(args: argparse.Namespace) -> None:
-    """Ingest, compute features and enrich, printing each step's result."""
+    """Extract the FASTA into a new database, batch by batch."""
+    path = Path(args.db)
+    if path.exists():
+        if not args.recreate:
+            sys.exit(
+                f"Database already exists: {path} "
+                "(pass --recreate to extract from zero)"
+            )
+        # A full extraction starts from an empty database, so the previous file
+        # (and a WAL left by an interrupted DuckDB) is replaced on purpose here.
+        for stale in (path, path.with_name(path.name + ".wal")):
+            stale.unlink(missing_ok=True)
+
     conn = db.connect(args.db)
     try:
         db.init_schema(conn)
-        print(f"Database: {Path(args.db).resolve()}")
+        print(f"Database: {path.resolve()}")
 
-        print(f"\n[1/3] Ingesting {args.fasta}")
-        counts = pipeline.ingest(conn, args.fasta, limit=args.limit)
-        print(
-            f"  {counts['inserted']:,} inserted, "
-            f"{counts['already_present']:,} already present, "
-            f"{counts['rejected']:,} rejected, "
-            f"{counts['duplicates']:,} duplicates "
-            f"({counts['records']:,} records, {counts['elapsed']}s)"
+        print(f"\nExtracting {args.fasta} in batches of {args.feature_batch_size:,}")
+        counts = pipeline.extract(
+            conn,
+            args.fasta,
+            batch_size=args.feature_batch_size,
+            limit=args.limit,
+            accessions_per_request=args.batch_size,
+            with_uniprot=not args.no_uniprot,
         )
-
-        print("\n[2/3] Computing sequence features")
-        counts = pipeline.compute_features(conn, batch_size=args.feature_batch_size)
         print(
-            f"  {counts['computed']:,} computed, {counts['skipped']:,} without "
-            f"canonical residues ({counts['elapsed']}s)"
+            f"  {counts['inserted']:,} proteins stored in {counts['batches']:,} "
+            f"batch(es) ({counts['records']:,} records read, "
+            f"{counts['rejected']:,} rejected, {counts['duplicates']:,} duplicates, "
+            f"{counts['elapsed']}s)"
         )
-
+        print(
+            f"  {counts['computed']:,} feature sets computed, {counts['skipped']:,} "
+            "without canonical residues"
+        )
         if args.no_uniprot:
-            print("\n[3/3] UniProt enrichment skipped (--no-uniprot)")
+            print("  UniProt enrichment skipped (--no-uniprot)")
         else:
-            print("\n[3/3] Enriching with UniProt")
-            counts = pipeline.enrich(
-                conn,
-                batch_size=args.batch_size,
-                max_age_days=args.max_age_days,
-                limit=args.limit,
-            )
             print(
                 f"  {counts['queried']:,} proteins queried in "
-                f"{counts['requests']} request(s): {counts['matched']:,} matched, "
-                f"{counts['not_found']:,} not found, "
-                f"{counts['go_rows']:,} GO rows ({counts['elapsed']}s)"
+                f"{counts['requests']:,} request(s): {counts['matched']:,} matched, "
+                f"{counts['not_found']:,} not found, {counts['go_rows']:,} GO rows"
             )
 
         print("\nDatabase summary")
@@ -113,35 +121,36 @@ def main() -> None:
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
-    run_parser = commands.add_parser("run", help="ingest, compute features, enrich")
+    run_parser = commands.add_parser(
+        "run", help="extract the FASTA into a new database, batch by batch"
+    )
     run_parser.add_argument("--fasta", default=DEFAULT_FASTA, help="input FASTA (.gz ok)")
     run_parser.add_argument("--db", default=DEFAULT_DB, help="DuckDB file")
     run_parser.add_argument(
         "--limit",
         type=int,
         default=None,
-        help="process at most N proteins (for a quick run)",
+        help="store at most N proteins (for a quick run)",
     )
     run_parser.add_argument(
         "--feature-batch-size",
         type=int,
-        default=5000,
-        help="proteins per features batch (time/memory trade-off)",
-    )
-    run_parser.add_argument(
-        "--no-uniprot", action="store_true", help="skip the UniProt step"
-    )
-    run_parser.add_argument(
-        "--max-age-days",
-        type=int,
-        default=None,
-        help="re-query annotations older than N days (default: never)",
+        default=pipeline.DEFAULT_BATCH_SIZE,
+        help="proteins per extraction batch (time/memory trade-off)",
     )
     run_parser.add_argument(
         "--batch-size",
         type=int,
-        default=200,
+        default=pipeline.DEFAULT_ACCESSIONS_PER_REQUEST,
         help="accessions per UniProt request",
+    )
+    run_parser.add_argument(
+        "--no-uniprot", action="store_true", help="store proteins and features only"
+    )
+    run_parser.add_argument(
+        "--recreate",
+        action="store_true",
+        help="replace an existing database (a full extraction starts from zero)",
     )
     run_parser.set_defaults(handler=run)
 
