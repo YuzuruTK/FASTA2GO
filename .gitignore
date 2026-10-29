@@ -1,38 +1,17 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+# Input data (FASTA downloads are large and never versioned)
+/data/
 
-# Virtual environments
-.venv/
-
-# Test artifacts
-.pytest_cache/
-tests/test_proteins.db
-
-# Jupyter
-.ipynb_checkpoints/
-
-# SQLite/DuckDB database files
-*.db
-*.sqlite
-*.sqlite3
+# Generated database and staging files
+/db/
+/cache/
 *.duckdb
+*.duckdb.wal
 
-# UniProt raw response cache
-cache/
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
 
-# Data files (FASTA)
-*.fasta
-*.fa
-*.tar.gz
-*.gz
-
-# Generated correlation plots (regenerate with scripts/correlations.py plot)
-exports/correlations/plots/
-
-# Local planning notes
-plans/
+# Notebooks
+.ipynb_checkpoints/

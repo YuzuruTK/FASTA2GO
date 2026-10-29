@@ -1,124 +1,153 @@
 #!/usr/bin/env python3
-"""CLI entry point for the Protein Sequence Feature Database.
+"""FASTA2GO - extraction stage.
 
-Usage:
-    uv run python main.py --input uniprot_sprot.fasta
-    uv run python main.py --input uniprot_sprot.fasta --db proteins.duckdb --batch-size 500 --limit 1000
+    uv run python main.py run       # ingest -> features -> UniProt -> report
+    uv run python main.py status    # what the database contains
+
+Both commands are safe to repeat: work already done is not repeated.
 """
+
+from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
-from protein_database.pipeline import process_fasta_file
+from fasta2go import db, pipeline, uniprot
+
+DEFAULT_FASTA = "data/uniprot_sprot.fasta"
+DEFAULT_DB = "db/fasta2go.duckdb"
 
 
-def format_time(seconds: float) -> str:
-    """Format seconds into a human-readable string."""
-    if seconds < 60:
-        return f"{seconds:.1f}s"
-    minutes = int(seconds // 60)
-    secs = seconds % 60
-    return f"{minutes}m {secs:.1f}s"
+def format_summary(summary: dict) -> list[str]:
+    """Human-readable lines for the database summary."""
+    lines = [
+        f"  proteins                  {summary['proteins']:,}",
+        f"    without UniProt acc.    {summary['without_accession']:,}",
+        f"  with features             {summary['with_features']:,}"
+        f"  (versions: {summary['feature_versions'] or '-'})",
+        f"  with composition          {summary['with_composition']:,}",
+        f"  with dipeptides           {summary['with_dipeptides']:,}",
+        f"  UniProt matched           {summary['matched']:,}",
+        f"  UniProt not found         {summary['not_found']:,}",
+        f"  not queried yet           {summary['unqueried']:,}",
+        f"  GO annotations            {summary['go_rows']:,} rows"
+        f" on {summary['proteins_with_go']:,} proteins",
+    ]
+    aspects = ", ".join(
+        f"{aspect}={count:,}" for aspect, count in summary["go_by_aspect"].items()
+    )
+    lines.append(f"    by aspect               {aspects or '-'}")
+    issues = ", ".join(
+        f"{issue}={count:,}" for issue, count in summary["issues"].items()
+    )
+    lines.append(f"  ingestion issues          {issues or '-'}")
+    lines.append(f"  orphan rows               {summary['orphans']:,}")
+    return lines
+
+
+def run(args: argparse.Namespace) -> None:
+    """Ingest, compute features and enrich, printing each step's result."""
+    conn = db.connect(args.db)
+    try:
+        db.init_schema(conn)
+        print(f"Database: {Path(args.db).resolve()}")
+
+        print(f"\n[1/3] Ingesting {args.fasta}")
+        counts = pipeline.ingest(conn, args.fasta, limit=args.limit)
+        print(
+            f"  {counts['inserted']:,} inserted, "
+            f"{counts['already_present']:,} already present, "
+            f"{counts['rejected']:,} rejected, "
+            f"{counts['duplicates']:,} duplicates "
+            f"({counts['records']:,} records, {counts['elapsed']}s)"
+        )
+
+        print("\n[2/3] Computing sequence features")
+        counts = pipeline.compute_features(conn)
+        print(
+            f"  {counts['computed']:,} computed, {counts['skipped']:,} without "
+            f"canonical residues ({counts['elapsed']}s)"
+        )
+
+        if args.no_uniprot:
+            print("\n[3/3] UniProt enrichment skipped (--no-uniprot)")
+        else:
+            print("\n[3/3] Enriching with UniProt")
+            counts = pipeline.enrich(
+                conn,
+                batch_size=args.batch_size,
+                max_age_days=args.max_age_days,
+                limit=args.limit,
+            )
+            print(
+                f"  {counts['queried']:,} proteins queried in "
+                f"{counts['requests']} request(s): {counts['matched']:,} matched, "
+                f"{counts['not_found']:,} not found, "
+                f"{counts['go_rows']:,} GO rows ({counts['elapsed']}s)"
+            )
+
+        print("\nDatabase summary")
+        print("\n".join(format_summary(pipeline.database_summary(conn))))
+    finally:
+        conn.close()
+
+
+def status(args: argparse.Namespace) -> None:
+    """Print what the database contains, without processing anything."""
+    if not Path(args.db).exists():
+        sys.exit(f"Database not found: {args.db}")
+    conn = db.connect(args.db)
+    try:
+        db.init_schema(conn)
+        print(f"Database: {Path(args.db).resolve()}")
+        print("\n".join(format_summary(pipeline.database_summary(conn))))
+    finally:
+        conn.close()
 
 
 def main() -> None:
-    """Parse CLI arguments and run the protein processing pipeline."""
     parser = argparse.ArgumentParser(
-        description="Protein Sequence Feature Database - Parse FASTA files, "
-        "extract features, and store results in DuckDB.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=(
-            "Examples:\n"
-            "  python main.py --input uniprot_sprot.fasta\n"
-            "  python main.py --input uniprot_sprot.fasta --db my_proteins.duckdb\n"
-            "  python main.py --input test.fasta --limit 100 --batch-size 500\n"
-        ),
+        description="FASTA2GO extraction: FASTA -> DuckDB with features, "
+        "UniProt metadata and GO annotations.",
     )
+    commands = parser.add_subparsers(dest="command", required=True)
 
-    parser.add_argument(
-        "--input", "-i",
-        type=str,
-        required=True,
-        help="Path to the input FASTA file.",
-    )
-
-    parser.add_argument(
-        "--db", "-d",
-        type=str,
-        default="proteins.duckdb",
-        help="Path to the output DuckDB database file (default: proteins.duckdb).",
-    )
-
-    parser.add_argument(
-        "--batch-size", "-b",
-        type=int,
-        default=1000,
-        help="Number of records to batch-commit to the database (default: 1000).",
-    )
-
-    parser.add_argument(
-        "--limit", "-l",
+    run_parser = commands.add_parser("run", help="ingest, compute features, enrich")
+    run_parser.add_argument("--fasta", default=DEFAULT_FASTA, help="input FASTA (.gz ok)")
+    run_parser.add_argument("--db", default=DEFAULT_DB, help="DuckDB file")
+    run_parser.add_argument(
+        "--limit",
         type=int,
         default=None,
-        help="Maximum number of proteins to process (for testing).",
+        help="process at most N proteins (for a quick run)",
     )
+    run_parser.add_argument(
+        "--no-uniprot", action="store_true", help="skip the UniProt step"
+    )
+    run_parser.add_argument(
+        "--max-age-days",
+        type=int,
+        default=None,
+        help="re-query annotations older than N days (default: never)",
+    )
+    run_parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=200,
+        help="accessions per UniProt request",
+    )
+    run_parser.set_defaults(handler=run)
 
-    parser.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Drop and recreate the database before processing.",
-    )
-
-    parser.add_argument(
-        "--csv-cache-dir",
-        type=str,
-        default="cache/csv_bulk",
-        help="Directory used to stage batch CSVs before the native DuckDB "
-        "import (default: cache/csv_bulk).",
-    )
+    status_parser = commands.add_parser("status", help="report database contents")
+    status_parser.add_argument("--db", default=DEFAULT_DB, help="DuckDB file")
+    status_parser.set_defaults(handler=status)
 
     args = parser.parse_args()
-
-    print("=" * 60)
-    print("  Protein Sequence Feature Database")
-    print("=" * 60)
-    print(f"  Input FASTA : {args.input}")
-    print(f"  Database     : {args.db}")
-    print(f"  Batch size   : {args.batch_size:,}")
-    if args.limit:
-        print(f"  Limit        : {args.limit:,}")
-    if args.overwrite:
-        print(f"  Overwrite    : Yes")
-    print(f"  CSV cache    : {args.csv_cache_dir}")
-    print("-" * 60)
-
     try:
-        summary = process_fasta_file(
-            fasta_path=args.input,
-            db_path=args.db,
-            batch_size=args.batch_size,
-            limit=args.limit,
-            overwrite=args.overwrite,
-            csv_cache_dir=args.csv_cache_dir,
-        )
-
-        print("=" * 60)
-        print("  Processing Complete")
-        print("=" * 60)
-        print(f"  Processed    : {summary['processed']:,} proteins")
-        print(f"  Skipped      : {summary['skipped']:,} proteins (already in DB)")
-        print(f"  Errors       : {summary['errors']}")
-        print(f"  Elapsed time : {format_time(summary['elapsed_seconds'])}")
-        print(f"  Database     : {summary['database_path']}")
-        print(f"  Rate         : {summary['processed'] / summary['elapsed_seconds']:.1f} proteins/sec")
-        print("=" * 60)
-
-    except FileNotFoundError:
-        print(f"Error: FASTA file not found: {args.input}", file=sys.stderr)
-        sys.exit(1)
-    except Exception as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        sys.exit(1)
+        args.handler(args)
+    except (uniprot.UniProtError, FileNotFoundError, ValueError) as error:
+        sys.exit(f"Error: {error}")
 
 
 if __name__ == "__main__":

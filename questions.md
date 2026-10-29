@@ -1,5 +1,0 @@
-- What defines the function of a Protein?
-- How we classify each function?
-- How much time we waste trying to find one similiarity between functions?
-- What are the data we can use? what are the variables available?
-- What is the Structure that generated have? what can we get of Information?
