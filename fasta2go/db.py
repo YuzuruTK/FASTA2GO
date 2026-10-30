@@ -19,11 +19,20 @@ VIEWS_SQL = PROJECT_ROOT / "sql" / "views.sql"
 STAGING_DIR = PROJECT_ROOT / "cache" / "staging"
 
 
-def connect(db_path: str | Path) -> duckdb.DuckDBPyConnection:
-    """Open (and create if needed) a DuckDB database file."""
+def connect(
+    db_path: str | Path, *, read_only: bool = False
+) -> duckdb.DuckDBPyConnection:
+    """Open (and create if needed) a DuckDB database file.
+
+    ``read_only`` opens an existing file without the write lock, so an analysis
+    cannot modify the database; a missing file then raises instead of being
+    created.
+    """
     if str(db_path) == ":memory:":
         return duckdb.connect(":memory:")
     path = Path(db_path)
+    if read_only:
+        return duckdb.connect(str(path), read_only=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     return duckdb.connect(str(path))
 

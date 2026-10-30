@@ -1,5 +1,7 @@
-# Input data (FASTA downloads are large and never versioned)
-/data/
+# Input data (FASTA downloads are large and never versioned). The pinned GO
+# sources in data/go_slim/ are small and must be versioned.
+/data/*
+!/data/go_slim/
 
 # Generated database and staging files
 /db/
@@ -11,7 +13,6 @@
 .venv/
 __pycache__/
 *.py[cod]
-.pytest_cache/
 
 # Notebooks
 .ipynb_checkpoints/

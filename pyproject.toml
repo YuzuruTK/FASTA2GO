@@ -13,12 +13,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.0",
-    "pytest>=8.3.0",
+    "seaborn>=0.13.2",
 ]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
 
 [tool.uv]
 # This project is run from the repository root, not installed as a package.

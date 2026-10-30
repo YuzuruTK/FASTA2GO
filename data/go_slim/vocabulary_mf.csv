@@ -1,0 +1,42 @@
+go_id,name,origin,in_generic_slim,ancestors_in_vocabulary,ontology_release
+GO:0001618,virus receptor activity,goslim_generic,true,GO:0005488,releases/2026-07-26
+GO:0003677,DNA binding,goslim_generic,true,GO:0005488,releases/2026-07-26
+GO:0003723,RNA binding,goslim_generic,true,GO:0005488,releases/2026-07-26
+GO:0003774,cytoskeletal motor activity,goslim_generic,true,,releases/2026-07-26
+GO:0003824,catalytic activity,goslim_generic,true,,releases/2026-07-26
+GO:0003924,GTPase activity,goslim_generic,true,GO:0003824;GO:0016787,releases/2026-07-26
+GO:0005198,structural molecule activity,goslim_generic,true,,releases/2026-07-26
+GO:0005215,transporter activity,goslim_generic,true,,releases/2026-07-26
+GO:0005488,binding,project_extension,false,,releases/2026-07-26
+GO:0008092,cytoskeletal protein binding,goslim_generic,true,GO:0005488,releases/2026-07-26
+GO:0008289,lipid binding,goslim_generic,true,GO:0005488,releases/2026-07-26
+GO:0009975,cyclase activity,goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0016209,antioxidant activity,goslim_generic,true,,releases/2026-07-26
+GO:0016491,oxidoreductase activity,goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0016740,transferase activity,goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0016787,hydrolase activity,goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0016829,lyase activity,goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0016853,isomerase activity,goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0016874,ligase activity,goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0031386,protein tag activity,goslim_generic,true,,releases/2026-07-26
+GO:0038024,cargo receptor activity,goslim_generic,true,,releases/2026-07-26
+GO:0042393,histone binding,goslim_generic,true,GO:0005488,releases/2026-07-26
+GO:0044183,protein folding chaperone,goslim_generic,true,,releases/2026-07-26
+GO:0045182,translation regulator activity,goslim_generic,true,,releases/2026-07-26
+GO:0045735,nutrient reservoir activity,goslim_generic,true,,releases/2026-07-26
+GO:0048018,receptor ligand activity,goslim_generic,true,GO:0098772,releases/2026-07-26
+GO:0060089,molecular transducer activity,goslim_generic,true,,releases/2026-07-26
+GO:0060090,molecular adaptor activity,goslim_generic,true,,releases/2026-07-26
+GO:0090729,toxin activity,goslim_generic,true,,releases/2026-07-26
+GO:0098631,cell adhesion mediator activity,goslim_generic,true,GO:0005488,releases/2026-07-26
+GO:0098772,molecular function regulator activity,goslim_generic,true,,releases/2026-07-26
+GO:0120274,virus coreceptor activity,goslim_generic,true,GO:0005488,releases/2026-07-26
+GO:0140096,"catalytic activity, acting on a protein",goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0140097,"catalytic activity, acting on DNA",goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0140098,"catalytic activity, acting on RNA",goslim_generic,true,GO:0003824,releases/2026-07-26
+GO:0140104,molecular carrier activity,goslim_generic,true,,releases/2026-07-26
+GO:0140110,transcription regulator activity,goslim_generic,true,,releases/2026-07-26
+GO:0140223,general transcription initiation factor activity,goslim_generic,true,,releases/2026-07-26
+GO:0140299,molecular sensor activity,goslim_generic,true,GO:0098772,releases/2026-07-26
+GO:0140313,molecular sequestering activity,goslim_generic,true,,releases/2026-07-26
+GO:0140657,ATP-dependent activity,goslim_generic,true,,releases/2026-07-26
